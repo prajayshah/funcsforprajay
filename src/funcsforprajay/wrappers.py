@@ -4,8 +4,11 @@ import functools
 import matplotlib.pyplot as plt
 
 
+# PLOTTING WRAPPERS
+# works
 def print_start_end_plot(plotting_func):
     """wrapper to print start and end of the plotting func call"""
+
     @functools.wraps(plotting_func)
     def inner(*args, **kwargs):
         print(f"\n {'.' * 5} plotting function \ start \n")
@@ -14,10 +17,8 @@ def print_start_end_plot(plotting_func):
 
     return inner
 
-
-## works
+# works
 def plot_piping_decorator(plotting_func):
-
     """
     Wrapper to help simplify creating plots from matplotlib.pyplot
 
@@ -75,11 +76,11 @@ def plot_piping_decorator(plotting_func):
             print('\-creating fig, ax [2]')
             kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize)
 
-
         print(f"\nnew kwargs {kwargs}")
 
         print(f'\nexecute plotting_func')
-        plotting_func(**kwargs)   # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
+        plotting_func(
+            **kwargs)  # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
         print(f'\nreturn fig, ax or show figure as called for')
         kwargs['fig'].suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None

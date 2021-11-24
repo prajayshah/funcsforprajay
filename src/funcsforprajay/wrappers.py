@@ -12,13 +12,14 @@ def print_start_end_plot(plotting_func):
         print(f"\n {'.' * 5} plotting function \ start \n")
         res = plotting_func(*args, **kwargs)
         # print(f"** res during print_start_end_plot {res}")
-        print(f"\n {'.' * 5} plotting function \ end \n ** res during print_start_end_plot {res}")
+        # print(f"\n {'.' * 5} plotting function \ end \n ** res during print_start_end_plot {res}")
+        print(f"\n {'.' * 5} plotting function \ end \n")
         return res
     return inner
 
 
 # works
-def plot_piping_decorator(figsize_=(5,5)):
+def plot_piping_decorator(figsize=(5,5)):
     def plot_piping_decorator_(plotting_func):
         """
         Wrapper to help simplify creating plots from matplotlib.pyplot
@@ -46,8 +47,8 @@ def plot_piping_decorator(figsize_=(5,5)):
 
         @functools.wraps(plotting_func)
         def inner(**kwargs):
-            print(f'perform fig, ax creation')
-            print(f'|-original kwargs {kwargs}')
+            # print(f'perform fig, ax creation')
+            # print(f'|-original kwargs {kwargs}')
             return_fig_obj = False
 
             # set number of rows, cols and figsize
@@ -62,28 +63,28 @@ def plot_piping_decorator(figsize_=(5,5)):
                 ncols = 1
 
             if 'figsize' in kwargs.keys():
-                figsize = kwargs['figsize']
+                figsize_ = kwargs['figsize']
             else:
-                figsize = figsize_
+                figsize_ = figsize
 
             # create or retrieve the fig, ax objects --> end up in kwargs to use into the plotting func call below
             if 'fig' in kwargs.keys() and 'ax' in kwargs.keys():
                 if kwargs['fig'] is None or kwargs['ax'] is None:
-                    print('\-creating fig, ax [1]')
-                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+                    # print('\-creating fig, ax [1]')
+                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize_)
                 else:
                     return_fig_obj = True
             else:
-                print('\-creating fig, ax [2]')
+                # print('\-creating fig, ax [2]')
                 kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize)
 
-            print(f"\nnew kwargs {kwargs}")
+            # print(f"\nnew kwargs {kwargs}")
 
-            print(f'\nexecute plotting_func')
+            print(f'\n\- executing plotting_func')
             plotting_func(
                 **kwargs)  # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
-            print(f'\nreturn fig, ax or show figure as called for')
+            # print(f'\nreturn fig, ax or show figure as called for')
             kwargs['fig'].suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None
             if 'show' in kwargs.keys():
                 if kwargs['show'] is True:
@@ -95,7 +96,7 @@ def plot_piping_decorator(figsize_=(5,5)):
             else:
                 kwargs['fig'].show()
 
-            print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
+            # print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
             return (kwargs['fig'], kwargs['ax']) if return_fig_obj else None
 
         return inner

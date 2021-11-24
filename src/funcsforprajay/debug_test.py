@@ -21,7 +21,7 @@ def print_start_end_plot(plotting_func):
     return inner
 
 
-def plot_piping_decorator(figsize_=(5,5)):
+def plot_piping_decorator(figsize=(5,5)):
     def plot_piping_decorator_(plotting_func):
         @functools.wraps(plotting_func)
         def inner(*args, **kwargs):
@@ -41,15 +41,15 @@ def plot_piping_decorator(figsize_=(5,5)):
                 ncols = 1
 
             if 'figsize' in kwargs.keys():
-                figsize = kwargs['figsize']
+                figsize_ = kwargs['figsize']
             else:
-                figsize = figsize_
+                figsize_ = figsize
 
             # create or retrieve the fig, ax objects --> end up in kwargs to use into the plotting func call below
             if 'fig' in kwargs.keys() and 'ax' in kwargs.keys():
                 if kwargs['fig'] is None or kwargs['ax'] is None:
                     print('\-creating fig, ax [1]')
-                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize_)
                 else:
                     return_fig_obj = True
             else:
@@ -92,7 +92,7 @@ def plot_piping_decorator(figsize_=(5,5)):
     return plot_piping_decorator_
 
 @print_start_end_plot
-@plot_piping_decorator(figsize_=(10,5))
+@plot_piping_decorator(figsize=(3,5))
 def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bool = True, plot_std: bool = True,
                       fig=None, ax=None, **kwargs):
     """

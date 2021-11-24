@@ -14,7 +14,7 @@ from sklearn.decomposition import PCA
 import tifffile as tf
 import math
 
-import wrappers
+from funcsforprajay.wrappers import plot_piping_decorator
 
 # plotting settings
 # fig = plt.figure()
@@ -586,10 +586,27 @@ def flattenOnce(list, asarray=False):
 from matplotlib.colors import LinearSegmentedColormap
 
 # general plotting function for making plots quickly (without having to write out a bunch of lines of code)
-def make_general_plot(data_arr, x_range=None, figsize: tuple = (5, 5), ncols=1, nrows=1, twin_x=False,
-                      plot_avg=True, plot_std=True, **kwargs):
-    # plots to compare dFF normalization for each trace - temp
-    f, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+@plot_piping_decorator
+def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bool = True, plot_std: bool = True, **kwargs):
+
+    """
+    General function for quick, simple plotting of arbritary data arrays.
+
+    :param data_arr: list of data-traces to plot, or np.ndarray containing data-traces
+    :param x_range: list of x-ranges to plot, or np.ndarray containing x-ranges
+    :param twin_x: iff two traces, option to plot on same axis
+    :param plot_avg: if more than two traces, whether to plot average of the data traces
+    :param plot_std: if more than two traces, whether to plot std of the data traces, if false will plot individual data traces in random color
+    :param kwargs: (optional)
+        colors: list, colors to use to plot >1 data traces
+        y_labels: list, y_labels to use to plot >1 data traces
+        x_labels: list, x_labels to use to plot >1 data traces
+        ax_titles: list of ax_titles to use to plot >1 data traces
+        v_span: tuple, vertical span fill - will be same for each axis
+        suptitle: str, used for suptitle of fig
+    """
+
+    f, axs = kwargs['fig'], kwargs['ax']
     # prepare for plotting over multiple axes if called for
     if type(axs) is np.array:
         num_axes = len(axs)
@@ -599,8 +616,11 @@ def make_general_plot(data_arr, x_range=None, figsize: tuple = (5, 5), ncols=1, 
 
     # create data arrays in the correct format for plotting
     if type(data_arr) is list:
-        data_arr = np.asarray(data_arr)
-    num_traces = len(data_arr)
+        num_traces = len(data_arr)
+    elif type(data_arr) is np.ndarray:
+        num_traces = data_arr.shape[0]
+    else:
+        raise Exception('data_arr must be of type list of np.ndarray')
 
     # check if plotting multi-traces on 1 axis (but not twinx style!):
     if num_traces > num_axes and num_axes == 1:
@@ -668,11 +688,7 @@ def make_general_plot(data_arr, x_range=None, figsize: tuple = (5, 5), ncols=1, 
             std_low = np.mean(data_arr, axis=0) - np.std(data_arr, axis=0)
             std_high = np.mean(data_arr, axis=0) + np.std(data_arr, axis=0)
             axs[ax_counter].fill_between(x_range[0], std_low, std_high, color='gray', alpha=0.5, zorder=0)
-        axs[ax_counter].set_title(f"{data_arr.shape[0]} traces")
-
-
-    f.suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None
-    f.show()
+        axs[ax_counter].set_title(f"{num_traces} traces")
 
 def make_colormap(seq):
     """Return a LinearSegmentedColormap

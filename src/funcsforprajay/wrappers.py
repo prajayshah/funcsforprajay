@@ -3,8 +3,45 @@
 import functools
 import matplotlib.pyplot as plt
 
+
+def print_start_end_plot(plotting_func):
+    """wrapper to print start and end of the plotting func call"""
+    @functools.wraps(plotting_func)
+    def inner(*args, **kwargs):
+        print(f"\n {'.' * 5} plotting function \ start \n")
+        plotting_func(*args, **kwargs)
+        print(f"\n {'.' * 5} plotting function \ end \n")
+
+    return inner
+
+
 ## works
 def plot_piping_decorator(plotting_func):
+
+    """
+    Wrapper to help simplify creating plots from matplotlib.pyplot
+
+    :param plotting_func: function to be wrapper
+    :return: fig+ax objects or shows the figure as specified
+
+    Examples:
+    ---------
+    @plot_piping_decorator
+    def example_decorated_plot(title='', **kwargs):
+        fig, ax = kwargs['fig'], kwargs['ax']  # need to add atleast this line to each plotting function's definition
+        print(f'|-kwargs inside example_decorated_plot definition: {kwargs}')
+        ax.plot(np.random.rand(10))
+        ax.set_title(title)
+
+    def example_decorated_plot(fig=None, ax=None, title='', **kwargs):
+        # in this example the fig and ax will be taken directly from the kwargs inside the inner wrapper
+        print(f'|-kwargs inside example_decorated_plot definition: {kwargs}')
+        ax.plot(np.random.rand(10))
+        ax.set_title(title)
+
+
+    """
+
     @functools.wraps(plotting_func)
     def inner(**kwargs):
         print(f'perform fig, ax creation')
@@ -45,7 +82,7 @@ def plot_piping_decorator(plotting_func):
         plotting_func(**kwargs)   # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
         print(f'\nreturn fig, ax or show figure as called for')
-        kwargs['fig'].suptitle('this title was decorated')
+        kwargs['fig'].suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None
         if 'show' in kwargs.keys():
             if kwargs['show'] is True:
                 print(f'\-showing fig...[3]')

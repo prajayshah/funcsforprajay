@@ -142,7 +142,7 @@ def pca_decomp_image(input_img, components: int = 3, plot_quant: bool = False):
 
 
 # grouped average / smoothing of a 1dim array (basically the same as grouped average on imageJ)
-def smooth_signal(signal, w):
+def smoothen_signal(signal, w):
     return np.convolve(signal, np.ones(w), 'valid') / w
 
 

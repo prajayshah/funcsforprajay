@@ -12,6 +12,8 @@ def print_start_end_plot(plotting_func):
     @functools.wraps(plotting_func)
     def inner(*args, **kwargs):
         print(f"\n {'.' * 5} plotting function \ start \n")
+        print(f"** args during print_start_end_plot {args}")
+        print(f"** kwargs during print_start_end_plot {kwargs}\n")
         res = plotting_func(*args, **kwargs)
         print(f"** res during print_start_end_plot {res}")
         print(f"\n {'.' * 5} plotting function \ end \n")
@@ -19,76 +21,78 @@ def print_start_end_plot(plotting_func):
     return inner
 
 
-def plot_piping_decorator(plotting_func):
-    @functools.wraps(plotting_func)
-    def inner(*args, **kwargs):
-        print(f'perform fig, ax creation')
-        print(f'|-original kwargs {kwargs}')
-        return_fig_obj = False
+def plot_piping_decorator(figsize_=(5,5)):
+    def plot_piping_decorator_(plotting_func):
+        @functools.wraps(plotting_func)
+        def inner(*args, **kwargs):
+            print(f'perform fig, ax creation')
+            print(f'|-original kwargs {kwargs}')
+            return_fig_obj = False
 
-        # set number of rows, cols and figsize
-        if 'nrows' in kwargs.keys():
-            nrows = kwargs['nrows']
-        else:
-            nrows = 1
-
-        if 'ncols' in kwargs.keys():
-            ncols = kwargs['ncols']
-        else:
-            ncols = 1
-
-        if 'figsize' in kwargs.keys():
-            figsize = kwargs['figsize']
-        else:
-            figsize = (5, 5)
-
-        # create or retrieve the fig, ax objects --> end up in kwargs to use into the plotting func call below
-        if 'fig' in kwargs.keys() and 'ax' in kwargs.keys():
-            if kwargs['fig'] is None or kwargs['ax'] is None:
-                print('\-creating fig, ax [1]')
-                kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+            # set number of rows, cols and figsize
+            if 'nrows' in kwargs.keys():
+                nrows = kwargs['nrows']
             else:
-                return_fig_obj = True
-        else:
-            print('\-creating fig, ax [2]')
-            kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize)
+                nrows = 1
+
+            if 'ncols' in kwargs.keys():
+                ncols = kwargs['ncols']
+            else:
+                ncols = 1
+
+            if 'figsize' in kwargs.keys():
+                figsize = kwargs['figsize']
+            else:
+                figsize = figsize_
+
+            # create or retrieve the fig, ax objects --> end up in kwargs to use into the plotting func call below
+            if 'fig' in kwargs.keys() and 'ax' in kwargs.keys():
+                if kwargs['fig'] is None or kwargs['ax'] is None:
+                    print('\-creating fig, ax [1]')
+                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+                else:
+                    return_fig_obj = True
+            else:
+                print('\-creating fig, ax [2]')
+                kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize)
 
 
-        print(f"\nnew kwargs {kwargs}")
+            print(f"\nnew kwargs {kwargs}")
 
-        print(f'\nexecute plotting_func')
-        # var = plotting_func(**kwargs)   # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
-        res = plotting_func(*args, **kwargs)   # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
+            print(f'\nexecute plotting_func')
+            # var = plotting_func(**kwargs)   # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
+            res = plotting_func(*args, **kwargs)   # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
-        # print(f"\n*returned from plotting func {var}")
+            # print(f"\n*returned from plotting func {var}")
 
-        print(f'\nreturn fig, ax or show figure as called for')
-        kwargs['fig'].suptitle('this title was decorated')
-        if 'show' in kwargs.keys():
-            if kwargs['show'] is True:
-                print(f'\-showing fig...[3]')
+            print(f'\nreturn fig, ax or show figure as called for')
+            kwargs['fig'].suptitle('this title was decorated')
+            if 'show' in kwargs.keys():
+                if kwargs['show'] is True:
+                    print(f'\-showing fig...[3]')
+                    kwargs['fig'].show()
+                else:
+                    print(f"\-not showing, but returning fig_obj [4]")
+                    return kwargs['fig'], kwargs['ax'], res
+                    # var = [kwargs['fig'], kwargs['ax']]
+                    # return var
+
+            else:
                 kwargs['fig'].show()
-            else:
-                print(f"\-not showing, but returning fig_obj [4]")
-                return kwargs['fig'], kwargs['ax'], res
-                # var = [kwargs['fig'], kwargs['ax']]
-                # return var
 
-        else:
-            kwargs['fig'].show()
+            print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
+            if return_fig_obj:
+                # var = zip(kwargs['fig'], kwargs['ax'], var)
+                return (kwargs['fig'], kwargs['ax'], res)
+            # else:
+            #     print(f"\n*returning from plotting func {var}")
+            #     return var
 
-        print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
-        if return_fig_obj:
-            # var = zip(kwargs['fig'], kwargs['ax'], var)
-            return (kwargs['fig'], kwargs['ax'], res)
-        # else:
-        #     print(f"\n*returning from plotting func {var}")
-        #     return var
-
-    return inner
+        return inner
+    return plot_piping_decorator_
 
 @print_start_end_plot
-@plot_piping_decorator
+@plot_piping_decorator(figsize_=(10,5))
 def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bool = True, plot_std: bool = True,
                       fig=None, ax=None, **kwargs):
     """
@@ -200,9 +204,12 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
 
 
 data_arr = np.asarray([np.random.rand(11), np.random.rand(6)[::2]])
-fig, ax = plt.subplots(figsize=(3,3))
 t = make_general_plot(data_arr=data_arr, xrange=[range(11), range(6)[::2]], colors=['green', 'blue'], plot_std=False,
-                      plot_avg=False, suptitle='a new title', fig=fig, ax=ax, show=False)
+                      plot_avg=False, suptitle='a new title', show=True)
+
+# fig, ax = plt.subplots(figsize=(3,3))
+# t = make_general_plot(data_arr=data_arr, xrange=[range(11), range(6)[::2]], colors=['green', 'blue'], plot_std=False,
+#                       plot_avg=False, suptitle='a new title', fig=fig, ax=ax, show=True)
 
 
 

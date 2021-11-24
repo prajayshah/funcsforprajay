@@ -14,6 +14,7 @@ from sklearn.decomposition import PCA
 import tifffile as tf
 import math
 
+import wrappers
 
 # plotting settings
 # fig = plt.figure()
@@ -559,12 +560,14 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
 
 
 # find the closest value in a list to the given input
-def findClosest(list, input):
-    subtract = list - input
+def findClosest(arr, input):
+    if type(arr) == list:
+        arr = np.array(arr)
+    subtract = arr - input
     positive_values = abs(subtract)
     # closest_value = min(positive_values) + input
     index = np.where(positive_values == min(positive_values))[0][0]
-    closest_value = list[index]
+    closest_value = arr[index]
 
     return closest_value, index
 
@@ -644,6 +647,10 @@ def make_general_plot(data_arr, x_range=None, figsize: tuple = (5, 5), ncols=1, 
 
     # make the plot using each provided data trace
     ax_counter = 0
+
+    if 'v_span' in kwargs.keys() and type(kwargs['v_span']) is tuple:
+        axs[ax_counter].axvspan(kwargs['v_span'][0], kwargs['v_span'][1], color='indianred', zorder=1)
+
     if plot_std is False:  # only plot individual lines if plot_std is inactive
         print(f'\- plotting {num_traces} individual traces on {num_axes} axes')
         for i in range(num_traces):
@@ -661,7 +668,7 @@ def make_general_plot(data_arr, x_range=None, figsize: tuple = (5, 5), ncols=1, 
             std_low = np.mean(data_arr, axis=0) - np.std(data_arr, axis=0)
             std_high = np.mean(data_arr, axis=0) + np.std(data_arr, axis=0)
             axs[ax_counter].fill_between(x_range[0], std_low, std_high, color='gray', alpha=0.5, zorder=0)
-
+        axs[ax_counter].set_title(f"{data_arr.shape[0]} traces")
 
 
     f.suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None

@@ -1,4 +1,4 @@
-# this script contains wrapper that are to be used elsewhere
+# this script contains wrapper that are to be used elsewhere`
 
 import functools
 import matplotlib.pyplot as plt
@@ -7,15 +7,15 @@ import matplotlib.pyplot as plt
 # PLOTTING WRAPPERS
 # works
 def print_start_end_plot(plotting_func):
-    """wrapper to print start and end of the plotting func call"""
-
-    @functools.wraps(plotting_func)
+    """wrapper to print start and end of the plotting func call, use at the top of nested decorators"""
     def inner(*args, **kwargs):
         print(f"\n {'.' * 5} plotting function \ start \n")
-        plotting_func(*args, **kwargs)
+        res = plotting_func(*args, **kwargs)
+        print(f"** res during print_start_end_plot {res}")
         print(f"\n {'.' * 5} plotting function \ end \n")
-
+        return res
     return inner
+
 
 # works
 def plot_piping_decorator(plotting_func):

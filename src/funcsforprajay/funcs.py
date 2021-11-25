@@ -268,10 +268,10 @@ def smoothen_signal(signal, w):
 # general plotting function for making plots quickly (without having to write out a bunch of lines of code)
 
 @print_start_end_plot
-@plot_piping_decorator
-def make_general_scatter(x_list, y_data, **kwargs):  ## TODO remove the double plotting, just give option to plot all individual as stamps or together!
+@plot_piping_decorator()
+def make_general_scatter(x_list, y_data, fig=None, ax=None, **kwargs):  ## TODO remove the double plotting, just give option to plot all individual as stamps or together!
     """
-    General function for quick, simple plotting of data lists as scatters.
+    General function for quick, simple plotting of data lists as scatters. NOTE: THIS FUNC MAKES TWO SEPARATE PLOTS if given >1 dataset to plot.
 
     :param x_list: list of x_points for plots, must match one to one to y_data
     :param y_data: list of y_data for plots, must match one to one to x_list
@@ -327,10 +327,11 @@ def make_general_scatter(x_list, y_data, **kwargs):  ## TODO remove the double p
         axs[0, 0].set_ylabel(kwargs['ax_y_labels'][0]) if 'ax_y_labels' in kwargs.keys() else None
 
     # prep for single small plot with all plots
-    fig, ax = plt.subplots(figsize=(4, 3))
+    # fig, ax = plt.subplots(figsize=(4, 3))
+    # fig, ax = kwargs['fig'], kwargs['ax']
 
     for i in range(num_plots):
-        print(f"plotting plot # {i} out of {num_plots}")
+        print(f"plotting plot # {i+1} out of {num_plots}, {len(x_list[i])} points")
         ax.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=0.2, lw=0)
 
         if num_plots > 1:
@@ -339,7 +340,7 @@ def make_general_scatter(x_list, y_data, **kwargs):  ## TODO remove the double p
 
             # make plot for individual key/experiment trial
             ax2 = axs[a, b]
-            ax.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=0.8, lw=0)
+            ax2.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=0.8, lw=0)
             ax2.set_xlim(-50, 50)
             ax2.set_title(f"{kwargs['ax_titles'][i]}") if 'ax_titles' in kwargs.keys() else None
             counter += 1
@@ -353,14 +354,16 @@ def make_general_scatter(x_list, y_data, **kwargs):  ## TODO remove the double p
     if num_plots > 1:
         fig2.suptitle(f"all plots individual")
         fig2.tight_layout(pad=1.8)
-        print(f"\nsaving multi-axes plot to {kwargs['save_path_full']}") if 'save_path_full' in kwargs.keys() else None
-        fig2.savefig(kwargs['save_path_full']) if 'save_path_full' in kwargs.keys() else None
+        # print(f"\nsaving multi-axes plot to {kwargs['save_path_full']}") if 'save_path_full' in kwargs.keys() else None
+        # fig2.savefig(kwargs['save_path_full']) if 'save_path_full' in kwargs.keys() else None
         fig2.show()
+        # print(f'trying to return {fig2}')
+        # return fig2
 
-    return None
+
 
 @print_start_end_plot
-@plot_piping_decorator
+@plot_piping_decorator()
 def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bool = True, plot_std: bool = True,
                       **kwargs):
     """

@@ -11,7 +11,7 @@ def print_start_end_plot(plotting_func):
     def inner(*args, **kwargs):
         print(f"\n {'.' * 5} plotting function \ start \n")
         res = plotting_func(*args, **kwargs)
-        # print(f"** res during print_start_end_plot {res}")
+        print(f"** res during print_start_end_plot {res}")
         # print(f"\n {'.' * 5} plotting function \ end \n ** res during print_start_end_plot {res}")
         print(f"\n {'.' * 5} plotting function \ end \n")
         return res
@@ -80,24 +80,32 @@ def plot_piping_decorator(figsize=(5,5)):
 
             # print(f"\nnew kwargs {kwargs}")
 
-            print(f'\n\- executing plotting_func')
-            plotting_func(
+            print(f'\- executing plotting_func')
+            res = plotting_func(
                 **kwargs)  # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
             # print(f'\nreturn fig, ax or show figure as called for')
             kwargs['fig'].suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None
+
+            kwargs['fig'].tight_layout()
+
             if 'show' in kwargs.keys():
                 if kwargs['show'] is True:
-                    print(f'\-showing fig...[3]')
+                    print(f'\- showing fig...[3]')
                     kwargs['fig'].show()
+                    print(f"*res right now: {res}")
+                    return res
                 else:
-                    print(f"\-not showing, but returning fig_obj [4]")
-                    return (kwargs['fig'], kwargs['ax'])
+                    print(f"\- not showing, but returning fig_obj [4]")
+                    return (kwargs['fig'], kwargs['ax'], res)
             else:
+                print(f'\- showing fig...[3]')
                 kwargs['fig'].show()
+                return res
 
-            # print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
-            return (kwargs['fig'], kwargs['ax']) if return_fig_obj else None
+            # # print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
+            # print(f"\- returning fig_obj [4]") if return_fig_obj else None
+            # return (kwargs['fig'], kwargs['ax']) if return_fig_obj else None
 
         return inner
     return plot_piping_decorator_

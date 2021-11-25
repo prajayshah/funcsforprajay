@@ -76,7 +76,7 @@ def plot_piping_decorator(figsize=(5,5)):
                     return_fig_obj = True
             else:
                 # print('\-creating fig, ax [2]')
-                kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize)
+                kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize_)
 
             # print(f"\nnew kwargs {kwargs}")
 

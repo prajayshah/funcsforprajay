@@ -13,6 +13,7 @@ import random
 from sklearn.decomposition import PCA
 import tifffile as tf
 import math
+import csv
 
 from funcsforprajay.wrappers import plot_piping_decorator, print_start_end_plot
 
@@ -179,6 +180,22 @@ def calc_distance_2points(p1: tuple, p2: tuple):
     return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
 
+# retrieve x, y points from csv
+def xycsv(csvpath):
+    xline = []
+    yline = []
+    with open(csvpath) as csv_file:
+        csv_file = csv.DictReader(csv_file, fieldnames=None, dialect='excel')
+        for row in csv_file:
+            xline.append(int(float(row['xcoords'])))
+            yline.append(int(float(row['ycoords'])))
+    # assumption = line is monotonic
+    line_argsort = np.argsort(yline)
+    xline = np.array(xline)[line_argsort]
+    yline = np.array(yline)[line_argsort]
+    return xline, yline
+
+
 # find percentile of a value within an array
 def find_percentile(d, threshold):
     return sum(np.abs(d) < threshold) / float(len(d)) * 100
@@ -267,7 +284,7 @@ def smoothen_signal(signal, w):
 ############### PLOTTING FUNCTIONS #####################################################################################
 # general plotting function for making plots quickly (without having to write out a bunch of lines of code)
 
-@print_start_end_plot
+# @print_start_end_plot
 @plot_piping_decorator()
 def make_general_scatter(x_list, y_data, fig=None, ax=None, **kwargs):  ## TODO remove the double plotting, just give option to plot all individual as stamps or together!
     """
@@ -276,9 +293,9 @@ def make_general_scatter(x_list, y_data, fig=None, ax=None, **kwargs):  ## TODO 
     :param x_list: list of x_points for plots, must match one to one to y_data
     :param y_data: list of y_data for plots, must match one to one to x_list
     :param kwargs: (optional)
-        colors: list, colors to use to plot >1 data traces
-        ax_y_labels: list, y_labels to use to plot >1 data traces
-        ax_x_labels: list, x_labels to use to plot >1 data traces
+        colors: list, colors to use to plot >1 data sets
+        ax_y_labels: list, y_labels to use to plot >1 data sets
+        ax_x_labels: list, x_labels to use to plot >1 data sets
         y_label: str, y_labels to use to plot the combined main plot
         x_label: str, x_labels to use to plot the combined main plot
         ax_titles: list of ax_titles to use to plot >1 data traces
@@ -306,6 +323,13 @@ def make_general_scatter(x_list, y_data, fig=None, ax=None, **kwargs):  ## TODO 
         assert len(kwargs['colors']) == len(x_list), print('|- AssertionError: provide enough colors as number of traces to plot')
         colors = kwargs['colors']
 
+    # set plotting properties
+    if 'alpha' in kwargs.keys(): alpha = kwargs['alpha']
+    else: alpha = 0.2
+    if 's' in kwargs.keys(): size = kwargs['s']
+    else: size = 10
+
+
     # check integrity of function call arguments
     if 'ax_y_labels' in kwargs.keys() and type(kwargs['ax_y_labels']) is list:
         assert len(kwargs['y_labels']) == num_plots
@@ -332,7 +356,7 @@ def make_general_scatter(x_list, y_data, fig=None, ax=None, **kwargs):  ## TODO 
 
     for i in range(num_plots):
         print(f"plotting plot # {i+1} out of {num_plots}, {len(x_list[i])} points")
-        ax.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=0.2, lw=0)
+        ax.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=alpha, lw=0, s=size)
 
         if num_plots > 1:
             a = counter // ncols
@@ -340,7 +364,7 @@ def make_general_scatter(x_list, y_data, fig=None, ax=None, **kwargs):  ## TODO 
 
             # make plot for individual key/experiment trial
             ax2 = axs[a, b]
-            ax2.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=0.8, lw=0)
+            ax2.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=0.8, lw=0, s=size)
             ax2.set_xlim(-50, 50)
             ax2.set_title(f"{kwargs['ax_titles'][i]}") if 'ax_titles' in kwargs.keys() else None
             counter += 1
@@ -361,8 +385,7 @@ def make_general_scatter(x_list, y_data, fig=None, ax=None, **kwargs):  ## TODO 
         # return fig2
 
 
-
-@print_start_end_plot
+# @print_start_end_plot
 @plot_piping_decorator()
 def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bool = True, plot_std: bool = True,
                       **kwargs):
@@ -379,6 +402,10 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         y_labels: list, y_labels to use to plot >1 data traces
         x_labels: list, x_labels to use to plot >1 data traces
         ax_titles: list of ax_titles to use to plot >1 data traces
+        title: str, one title for one ax plotting
+        y_label: str, one y label for one ax plotting
+        x_label: str, one x label for one ax plotting
+        fontsize: float, fontsizes within the plot of text labels
         v_span: tuple, vertical span fill - will be same for each axis
         suptitle: str, used for suptitle of fig
     :return None
@@ -422,8 +449,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
     if x_range is not None:
         if type(x_range) is list:
             x_range = np.asarray(x_range)
-        assert x_range.shape == data_arr.shape, print(
-            '|- AssertionError: mismatch between data to plot and x_range provided for this data')
+        assert x_range.shape == data_arr.shape, print('|- AssertionError: mismatch between data to plot and x_range provided for this data')
     else:
         x_range = np.empty_like(data_arr)
         for i in range(num_traces):
@@ -439,12 +465,18 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         colors = kwargs['colors']
 
     # check integrity of function call arguments
-    if 'y_labels' in kwargs.keys():
+    if 'y_labels' in kwargs.keys() and len(kwargs['y_labels']) > 1:
         assert len(kwargs['y_labels']) == num_traces
-    if 'x_labels' in kwargs.keys():
+    if 'x_labels' in kwargs.keys() and len(kwargs['x_labels']) > 1:
         assert len(kwargs['x_labels']) == num_traces
     if 'ax_titles' in kwargs.keys():
         assert len(kwargs['ax_titles']) == num_traces
+
+    # shrink or enlarge the fontsize option:
+    if 'fontsize' in kwargs.keys():
+        fontsize = kwargs['fontsize']
+    else:
+        fontsize = 10
 
     # make the plot using each provided data trace
     ax_counter = 0
@@ -456,9 +488,10 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         print(f'\- plotting {num_traces} individual traces on {num_axes} axes')
         for i in range(num_traces):
             axs[ax_counter].plot(x_range[i], data_arr[i], color=colors[i], alpha=alpha)
-            axs[ax_counter].set_ylabel(kwargs['y_labels'][i]) if 'y_labels' in kwargs.keys() else None
-            axs[ax_counter].set_xlabel(kwargs['x_labels'][i]) if 'x_labels' in kwargs.keys() else None
             if num_axes > 1:
+                axs[ax_counter].set_xlabel(kwargs['ax_titles'][i], fontsize=fontsize) if 'ax_titles' in kwargs.keys() else None
+                axs[ax_counter].set_xlabel(kwargs['x_labels'][i], fontsize=fontsize) if 'x_labels' in kwargs.keys() else None
+                axs[ax_counter].set_ylabel(kwargs['y_labels'][i], fontsize=fontsize) if 'y_labels' in kwargs.keys() else None
                 ax_counter += 1
     if num_axes == 1 and twin_x is False:
         if plot_avg:
@@ -470,9 +503,70 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
             std_low = np.mean(data_arr, axis=0) - np.std(data_arr, axis=0)
             std_high = np.mean(data_arr, axis=0) + np.std(data_arr, axis=0)
             axs[ax_counter].fill_between(x_range[0], std_low, std_high, color='gray', alpha=0.5, zorder=0)
-        axs[ax_counter].set_title(f"{num_traces} traces")
+
+        axs[ax_counter].set_title(kwargs['title'], fontsize=fontsize*1.1, wrap=True) if 'title' in kwargs.keys() else axs[ax_counter].set_title(f"{num_traces} traces")
+        axs[ax_counter].set_ylabel(kwargs['y_label'], fontsize=fontsize) if 'y_label' in kwargs.keys() else None
+        axs[ax_counter].set_xlabel(kwargs['x_label'], fontsize=fontsize) if 'x_label' in kwargs.keys() else None
+        axs[ax_counter].set_ylabel(kwargs['y_labels'], fontsize=fontsize) if 'y_labels' in kwargs.keys() else None
+        axs[ax_counter].set_xlabel(kwargs['x_labels'], fontsize=fontsize) if 'x_labels' in kwargs.keys() else None
 
     return None
+
+
+### plot the location of provided coordinates
+@plot_piping_decorator(figsize=(5,5))
+def plot_coordinates(coords: list,  frame_x: int, frame_y: int, background: np.ndarray = None, fig=None, ax=None, **kwargs):
+    """
+    plot coordinate locations
+
+    :param targets_coords: ls containing (x,y) coordinates of targets to plot
+    :param background: np.array on which to plot coordinates, default is black background (optional)
+    :param kwargs:
+    """
+
+    if background is None:
+        black = np.zeros((frame_x, frame_y), dtype='uint16')
+        ax.imshow(black, cmap='gray')
+    else:
+        ax.imshow(background, cmap='gray')
+
+    if 'edgecolors' in kwargs.keys():
+        edgecolors = kwargs['edgecolors']
+    else:
+        edgecolors = 'yellowgreen'
+    for (x, y) in coords:
+        ax.scatter(x=x, y=y, edgecolors=edgecolors, facecolors='none', linewidths=2.0)
+
+    ax.margins(0)
+    fig.tight_layout()
+
+    if 'title' in kwargs.keys():
+        if kwargs['title'] is not None:
+            ax.set_title(kwargs['title'])
+        else:
+            pass
+
+def lighten_color(color, amount=0.5):
+    """
+    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Input can be matplotlib color string, hex string, or RGB tuple.
+
+    from: https://stackoverflow.com/questions/37765197/darken-or-lighten-a-color-in-matplotlib/49601444
+
+    Examples:
+    >> lighten_color('g', 0.3)
+    >> lighten_color('#F034A3', 0.6)
+    >> lighten_color((.3,.55,.1), 0.5)
+    """
+    import matplotlib.colors as mc
+    import colorsys
+    try:
+        c = mc.cnames[color]
+    except:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
+
 
 # custom colorbar for heatmaps
 from matplotlib.colors import LinearSegmentedColormap
@@ -623,9 +717,9 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
 
     ax.set_xticks([x * w * 2.5 for x in xrange_ls])
     if len(xrange_ls) > 1:
-        ax.set_xticklabels(x_tick_labels, fontsize=12 * shrink_text, rotation=45)
+        ax.set_xticklabels(x_tick_labels, fontsize=10 * shrink_text, rotation=45)
     else:
-        ax.set_xticklabels(x_tick_labels, fontsize=12 * shrink_text)
+        ax.set_xticklabels(x_tick_labels, fontsize=10 * shrink_text)
 
     if xlims:
         ax.set_xlim([(xrange_ls[0] * w * 2) - w * 1.20, (xrange_ls[-1] * w * 2.5) + w * 1.20])
@@ -673,14 +767,14 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.tick_params(axis='both', which='both', length=10)
+    ax.tick_params(axis='both', which='both', length=5)
 
     # Only show ticks on the left and bottom spines
     ax.yaxis.set_ticks_position('left')
     ax.xaxis.set_ticks_position('bottom')
 
-    ax.set_xlabel(x_label, fontsize=8 * shrink_text)
-    ax.set_ylabel(y_label, fontsize=12 * shrink_text)
+    ax.set_xlabel(x_label, fontsize=10 * shrink_text)
+    ax.set_ylabel(y_label, fontsize=10 * shrink_text)
     if savepath:
         plt.savefig(savepath)
 
@@ -705,22 +799,21 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
     # add title
     if 'fig' not in kwargs.keys():
         ax.set_title(title, horizontalalignment='center', pad=title_pad,
-                     fontsize=12 * shrink_text, wrap=False)
-        f.tight_layout()
+                     fontsize=11 * shrink_text, wrap=True)
     else:
-        ax.set_title((title), horizontalalignment='center', verticalalignment='top',
-                     fontsize=12 * shrink_text, wrap=True)
+        ax.set_title((title), horizontalalignment='center', pad=title_pad,
+                     fontsize=11 * shrink_text, wrap=True)
 
     if 'show' in kwargs.keys():
         if kwargs['show'] is True:
             # Tweak spacing to prevent clipping of ylabel
-            # f.tight_layout()
+            f.tight_layout(pad=1.4)
             f.show()
         else:
             return f, ax
     else:
         # Tweak spacing to prevent clipping of ylabel
-        # f.tight_layout()
+        f.tight_layout(pad=1.4)
         f.show()
 
 

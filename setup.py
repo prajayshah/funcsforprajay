@@ -10,7 +10,7 @@ setup(
     description='essential funcs written in python',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='http://github.com/{.....}',
+    url='http://github.com/prajayshah/funcsforprajay',
     author='Prajay Shah',
     author_email='prajay.shah95@gmail.com',
     license='MIT',

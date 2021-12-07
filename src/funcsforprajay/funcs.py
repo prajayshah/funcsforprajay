@@ -179,6 +179,8 @@ def calc_distance_2points(p1: tuple, p2: tuple):
     """
     return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
+def lin_regression(x: list, y: list):
+    return np.poly1d(np.polyfit(x, y, 1))(range(np.min(x), np.max(x)))
 
 # retrieve x, y points from csv
 def xycsv(csvpath):
@@ -525,8 +527,8 @@ def plot_coordinates(coords: list,  frame_x: int, frame_y: int, background: np.n
     """
 
     if background is None:
-        black = np.zeros((frame_x, frame_y), dtype='uint16')
-        ax.imshow(black, cmap='gray')
+        background = np.zeros((frame_x, frame_y), dtype='uint16')
+        ax.imshow(background, cmap='gray')
     else:
         ax.imshow(background, cmap='gray')
 

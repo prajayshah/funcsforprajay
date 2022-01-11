@@ -305,6 +305,60 @@ def smoothen_signal(signal, w):
 
 ############### PLOTTING FUNCTIONS #####################################################################################
 # general plotting function for making plots quickly (without having to write out a bunch of lines of code)
+# custom colorbar for heatmaps
+from matplotlib.colors import LinearSegmentedColormap
+def make_colormap(seq):
+    """Return a LinearSegmentedColormap
+    seq: a sequence of floats and RGB-tuples. The floats should be increasing
+    and in the interval (0,1).
+    """
+    seq = [(None,) * 3, 0.0] + list(seq) + [1.0, (None,) * 3]
+    cdict = {'red': [], 'green': [], 'blue': []}
+    for i, item in enumerate(seq):
+        if isinstance(item, float):
+            r1, g1, b1 = seq[i - 1]
+            r2, g2, b2 = seq[i + 1]
+            cdict['red'].append([item, r1, r2])
+            cdict['green'].append([item, g1, g2])
+            cdict['blue'].append([item, b1, b2])
+    return LinearSegmentedColormap('CustomMap', cdict)
+
+
+# generate an array of random colors
+def _get_random_color(pastel_factor=0.5):
+    return [(x + pastel_factor) / (1.0 + pastel_factor) for x in [random.uniform(0, 1.0) for i in [1, 2, 3]]]
+
+
+def _color_distance(c1, c2):
+    return sum([abs(x[0] - x[1]) for x in zip(c1, c2)])
+
+
+def _generate_new_color(existing_colors, pastel_factor=0.5):
+    max_distance = None
+    best_color = None
+    for i in range(0, 100):
+        color = _get_random_color(pastel_factor=pastel_factor)
+        if not existing_colors:
+            return color
+        best_distance = min([_color_distance(color, c) for c in existing_colors])
+        if not max_distance or best_distance > max_distance:
+            max_distance = best_distance
+            best_color = color
+    return best_color
+
+
+def make_random_color_array(n_colors):
+    """
+    Generates a list of random colors for an input number of colors required.
+
+    :param n_colors: # of colors required
+    :return: list of colors in RGB
+    """
+    colors = []
+    for i in range(0, n_colors):
+        colors.append(_generate_new_color(colors, pastel_factor=0.2))
+    return colors
+
 
 @plot_piping_decorator()
 def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs):  ## TODO remove the double plotting, just give option to plot all individual as stamps or together!
@@ -444,7 +498,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         num_axes = len(axs)
     else:
         num_axes = 1
-        axs = np.array([axs])
+        # axs = np.array([axs])
 
     # create data arrays in the correct format for plotting
     if type(data_arr) is list:
@@ -484,7 +538,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
 
     # make random colors for plotting
     if 'colors' not in kwargs.keys():
-        colors = make_random_color_array(num_traces)
+        colors = make_random_color_array(num_traces) if num_traces > 1 else ['black']
     else:
         assert type(kwargs['colors']) is list, print('|- AssertionError: provide colors argument in list form')
         assert len(kwargs['colors']) == num_traces, print(
@@ -532,7 +586,6 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         axs[ax_counter].set_xlabel(kwargs['x_labels'], fontsize=fontsize) if 'x_labels' in kwargs.keys() else None
 
     return None
-
 
 ### plot the location of provided coordinates
 @plot_piping_decorator(figsize=(5,5), verbose=False)
@@ -628,59 +681,7 @@ def lighten_color(color, amount=0.5):
     return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
 
-# custom colorbar for heatmaps
-from matplotlib.colors import LinearSegmentedColormap
-def make_colormap(seq):
-    """Return a LinearSegmentedColormap
-    seq: a sequence of floats and RGB-tuples. The floats should be increasing
-    and in the interval (0,1).
-    """
-    seq = [(None,) * 3, 0.0] + list(seq) + [1.0, (None,) * 3]
-    cdict = {'red': [], 'green': [], 'blue': []}
-    for i, item in enumerate(seq):
-        if isinstance(item, float):
-            r1, g1, b1 = seq[i - 1]
-            r2, g2, b2 = seq[i + 1]
-            cdict['red'].append([item, r1, r2])
-            cdict['green'].append([item, g1, g2])
-            cdict['blue'].append([item, b1, b2])
-    return LinearSegmentedColormap('CustomMap', cdict)
 
-
-# generate an array of random colors
-def _get_random_color(pastel_factor=0.5):
-    return [(x + pastel_factor) / (1.0 + pastel_factor) for x in [random.uniform(0, 1.0) for i in [1, 2, 3]]]
-
-
-def _color_distance(c1, c2):
-    return sum([abs(x[0] - x[1]) for x in zip(c1, c2)])
-
-
-def _generate_new_color(existing_colors, pastel_factor=0.5):
-    max_distance = None
-    best_color = None
-    for i in range(0, 100):
-        color = _get_random_color(pastel_factor=pastel_factor)
-        if not existing_colors:
-            return color
-        best_distance = min([_color_distance(color, c) for c in existing_colors])
-        if not max_distance or best_distance > max_distance:
-            max_distance = best_distance
-            best_color = color
-    return best_color
-
-
-def make_random_color_array(n_colors):
-    """
-    Generates a list of random colors for an input number of colors required.
-
-    :param n_colors: # of colors required
-    :return: list of colors in RGB
-    """
-    colors = []
-    for i in range(0, n_colors):
-        colors.append(_generate_new_color(colors, pastel_factor=0.2))
-    return colors
 
 
 # plotting function for plotting a bar graph with the individual data points shown as well

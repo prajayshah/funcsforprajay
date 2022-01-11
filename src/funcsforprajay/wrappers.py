@@ -9,17 +9,17 @@ import matplotlib.pyplot as plt
 def print_start_end_plot(plotting_func):
     """wrapper to print start and end of the plotting func call, use at the top of nested decorators"""
     def inner(*args, **kwargs):
-        print(f"\n {'.' * 5} plotting function \ start \n")
+        print(f"\n {'.' * 5} plotting function \ ... \n", end='\r')
         res = plotting_func(*args, **kwargs)
-        print(f"** res during print_start_end_plot {res}")
+        print(f"** return elements during print_start_end_plot: {res}")
         # print(f"\n {'.' * 5} plotting function \ end \n ** res during print_start_end_plot {res}")
-        print(f"\n {'.' * 5} plotting function \ end \n")
+        print(f"\n {'.' * 5} plotting function \ END \n", end='\r')
         return res
     return inner
 
 
 # works
-def plot_piping_decorator(figsize=(5,5)):
+def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
     def plot_piping_decorator_(plotting_func):
         """
         Wrapper to help simplify creating plots from matplotlib.pyplot
@@ -46,21 +46,21 @@ def plot_piping_decorator(figsize=(5,5)):
         """
 
         @functools.wraps(plotting_func)
-        def inner(**kwargs):
+        def inner(*args, **kwargs):
             # print(f'perform fig, ax creation')
             # print(f'|-original kwargs {kwargs}')
             return_fig_obj = False
 
             # set number of rows, cols and figsize
             if 'nrows' in kwargs.keys():
-                nrows = kwargs['nrows']
+                __nrows = kwargs['nrows']
             else:
-                nrows = 1
+                __nrows = nrows
 
             if 'ncols' in kwargs.keys():
-                ncols = kwargs['ncols']
+                __ncols = kwargs['ncols']
             else:
-                ncols = 1
+                __ncols = ncols
 
             if 'figsize' in kwargs.keys():
                 figsize_ = kwargs['figsize']
@@ -71,15 +71,17 @@ def plot_piping_decorator(figsize=(5,5)):
             if 'fig' in kwargs.keys() and 'ax' in kwargs.keys():
                 if kwargs['fig'] is None or kwargs['ax'] is None:
                     # print('\-creating fig, ax [1]')
-                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize_)
+                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_)
             else:
                 # print('\-creating fig, ax [2]')
-                kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize_)
+                kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_)
+
+
 
             # print(f"\nnew kwargs {kwargs}")
 
-            print(f'\- executing plotting_func')
-            res = plotting_func(**kwargs)  # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
+            print(f'\- executing plotting_func...', end='\r') if verbose else None
+            res = plotting_func(*args, **kwargs)  # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
             # print(f'\nreturn fig, ax or show figure as called for')
             kwargs['fig'].suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None

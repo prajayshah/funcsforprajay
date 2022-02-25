@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 def print_start_end_plot(plotting_func):
     """wrapper to print start and end of the plotting func call, use at the top of nested decorators"""
     def inner(*args, **kwargs):
-        print(f"\n {'.' * 5} plotting function \ ... \n", end='\r')
+        print(f"\nplotting function {'.' * 20} \ \n", end='\r')
         res = plotting_func(*args, **kwargs)
-        print(f"** return elements during print_start_end_plot: {res}")
+        print(f"\- return elements during print_start_end_plot: {res}")
         # print(f"\n {'.' * 5} plotting function \ end \n ** res during print_start_end_plot {res}")
-        print(f"\n {'.' * 5} plotting function \ END \n", end='\r')
+        print(f"{'.' * 34} \ END \n", end='\r')
         return res
     return inner
 

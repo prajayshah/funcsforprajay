@@ -19,27 +19,23 @@ import csv
 from funcsforprajay.wrappers import plot_piping_decorator, print_start_end_plot
 
 
-# plotting settings
-# fig = plt.figure()
-# ax = fig.add_subplot(1, 1, 1)
-# ax.spines['left'].set_position('center')
-# ax.spines['bottom'].set_position('center')
-# ax.spines['right'].set_color('none')
-# ax.spines['top'].set_color('none')
-# ax.xaxis.set_ticks_position('bottom')
-# ax.yaxis.set_ticks_position('left')
-
 ############### GENERALLY USEFUL FUNCTIONS #############################################################################
 # return the parent directory of a file:
 def return_parent_dir(file_path: str):
     return file_path[:[(s.start(), s.end()) for s in re.finditer('/', file_path)][-1][0]]
 
 
+def list_in_dir(dir_path: str):
+    assert os.path.exists(dir_path)
+    return os.listdir(dir_path)
+
+
 def timer(start, end):
     "source: https://stackoverflow.com/questions/27779677/how-to-format-elapsed-time-from-seconds-to-hours-minutes-seconds-and-milliseco"
-    hours, rem = divmod(end-start, 3600)
+    hours, rem = divmod(end - start, 3600)
     minutes, seconds = divmod(rem, 60)
     print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds) + ' hours, mins, seconds')
+
 
 # report sizes of variables
 def _sizeof_fmt(num, suffix='B'):
@@ -153,6 +149,17 @@ def flattenOnce(list, asarray=False):
         return np.asarray([x for i in list for x in i])
 
 
+# save .pkl files from the specified pkl_path
+def save_pkl(obj, pkl_path: str):
+    if os.path.exists(return_parent_dir(pkl_path)):
+        os.makedirs(return_parent_dir(pkl_path), exist_ok=True)
+        with open(pkl_path, 'wb') as f:
+            pickle.dump(obj, f)
+        print(f"\- saved to {pkl_path} -- ")
+    else:
+        NotADirectoryError(f'parent directory of {pkl_path} cannot be reached.')
+
+
 # load .pkl files from the specified pkl_path
 def load_pkl(pkl_path: str):
     if os.path.exists(pkl_path):
@@ -163,6 +170,11 @@ def load_pkl(pkl_path: str):
 
 
 ############### STATS/DATA ANALYSIS FUNCTIONS ##########################################################################
+def moving_average(a, n=4):
+    ret = np.cumsum(a)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
 
 # calculate correlation across all cells
 def corrcoef_array(array):
@@ -199,8 +211,10 @@ def calc_distance_2points(p1: tuple, p2: tuple):
     """
     return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
+
 def lin_regression(x: list, y: list):
     return np.poly1d(np.polyfit(x, y, 1))(range(np.min(x), np.max(x)))
+
 
 # retrieve x, y points from csv
 def xycsv(csvpath):
@@ -216,6 +230,23 @@ def xycsv(csvpath):
     xline = np.array(xline)[line_argsort]
     yline = np.array(yline)[line_argsort]
     return xline, yline
+
+
+# read matlab array
+def load_matlab_array(path):
+    """
+    Returns a matlab array read in from the path given in path.
+    :param path: path to the matlab output file ending in .mat
+    :return: array
+    """
+    return io.loadmat(path)
+
+
+# read csv
+def read_csv(csvpath):
+    with open(csvpath) as csv_file:
+        csv_file = csv.DictReader(csv_file, fieldnames=None, dialect='excel')
+    return csv_file
 
 
 # find percentile of a value within an array
@@ -307,6 +338,8 @@ def smoothen_signal(signal, w):
 # general plotting function for making plots quickly (without having to write out a bunch of lines of code)
 # custom colorbar for heatmaps
 from matplotlib.colors import LinearSegmentedColormap
+
+
 def make_colormap(seq):
     """Return a LinearSegmentedColormap
     seq: a sequence of floats and RGB-tuples. The floats should be increasing
@@ -324,7 +357,7 @@ def make_colormap(seq):
     return LinearSegmentedColormap('CustomMap', cdict)
 
 
-# generate an array of random colors
+# generate an array of random line_colors
 def _get_random_color(pastel_factor=0.5):
     return [(x + pastel_factor) / (1.0 + pastel_factor) for x in [random.uniform(0, 1.0) for i in [1, 2, 3]]]
 
@@ -349,10 +382,10 @@ def _generate_new_color(existing_colors, pastel_factor=0.5):
 
 def make_random_color_array(n_colors):
     """
-    Generates a list of random colors for an input number of colors required.
+    Generates a list of random line_colors for an input number of line_colors required.
 
-    :param n_colors: # of colors required
-    :return: list of colors in RGB
+    :param n_colors: # of line_colors required
+    :return: list of line_colors in RGB
     """
     colors = []
     for i in range(0, n_colors):
@@ -360,15 +393,16 @@ def make_random_color_array(n_colors):
     return colors
 
 
-@plot_piping_decorator()
-def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs):  ## TODO remove the double plotting, just give option to plot all individual as stamps or together!
+@plot_piping_decorator(verbose=False)
+def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None,
+                         **kwargs):  ## TODO remove the double plotting, just give option to plot all individual as stamps or together!
     """
     General function for quick, simple plotting of data lists as scatters. NOTE: THIS FUNC MAKES TWO SEPARATE PLOTS if given >1 dataset to plot.
 
     :param x_list: list of x_points for plots, must match one to one to y_data
     :param y_data: list of y_data for plots, must match one to one to x_list
     :param kwargs: (optional)
-        colors: list, colors to use to plot >1 data sets
+        line_colors: list, line_colors to use to plot >1 data sets
         ax_y_labels: list, y_labels to use to plot >1 data sets
         ax_x_labels: list, x_labels to use to plot >1 data sets
         y_label: str, y_labels to use to plot the combined main plot
@@ -385,35 +419,46 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
     #
     # y_data = [[]]
     # x_list = [[]]
-    # colors = [[]]
-
+    # line_colors = [[]]
 
     ##
     assert len(y_data) == len(x_list), 'y_data length does not match x_list length'
 
     num_plots = len(x_list)
 
-    if 'colors' not in kwargs.keys(): colors = make_random_color_array(num_plots)
+    if 'line_colors' not in kwargs.keys():
+        colors = make_random_color_array(num_plots)
     else:
-        assert type(kwargs['colors']) is list and len(kwargs['colors']) == len(x_list), 'provide colors argument in list form matching number of traces to plot'
-        colors = kwargs['colors']
+        assert type(kwargs['line_colors']) is list and len(kwargs['line_colors']) == len(
+            x_list), 'provide line_colors argument in list form matching number of traces to plot'
+        colors = kwargs['line_colors']
+
+    edgecolors = colors if 'edgecolors' not in [*kwargs] else kwargs['edgecolors']
 
     # set plotting properties
-    if 'alpha' in kwargs.keys(): alpha = kwargs['alpha']
-    else: alpha = 0.2
-    if 's' in kwargs.keys(): size = kwargs['s']
-    else: size = 10
-
+    if 'alpha' in kwargs.keys():
+        alpha = kwargs['alpha']
+    else:
+        alpha = 0.8
+    if 's' in kwargs.keys():
+        size = kwargs['s']
+    else:
+        size = 50
+    lw = 0 if 'lw' not in [*kwargs] else kwargs['lw']
 
     # check integrity of function call arguments
-    if 'ax_y_labels' in kwargs.keys() and type(kwargs['ax_y_labels']) is list: assert len(kwargs['y_labels']) == num_plots
-    if 'ax_x_labels' in kwargs.keys() and type(kwargs['ax_x_labels']) is list: assert len(kwargs['x_labels']) == num_plots
+    if 'ax_y_labels' in kwargs.keys() and type(kwargs['ax_y_labels']) is list: assert len(
+        kwargs['y_labels']) == num_plots
+    if 'ax_x_labels' in kwargs.keys() and type(kwargs['ax_x_labels']) is list: assert len(
+        kwargs['x_labels']) == num_plots
     if 'ax_titles' in kwargs.keys() and type(kwargs['ax_titles']) is list: assert len(kwargs['ax_titles']) == num_plots
 
     if 'legend_labels' in kwargs.keys() and type(kwargs['legend_labels']) is list:
-        assert len(kwargs['legend_labels']) == num_plots, 'legend_labels len does not match number of plots to make (len of x_list)'
+        assert len(kwargs[
+                       'legend_labels']) == num_plots, 'legend_labels len does not match number of plots to make (len of x_list)'
         label = kwargs['legend_labels']
-    else: label = ['']
+    else:
+        label = ['']
 
     if num_plots > 1:
         ncols = 4
@@ -432,8 +477,10 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
     # fig, ax = kwargs['fig'], kwargs['ax']
 
     for i in range(num_plots):
-        print(f"plotting plot # {i+1} out of {num_plots}, {len(x_list[i])} points")
-        ax.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=alpha, lw=0, s=size, label=label[i])
+        if 'supress_print' in [*kwargs] and kwargs['supress_print'] != True: print(
+            f"plotting plot # {i + 1} out of {num_plots}, {len(x_list[i])} points")
+        ax.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], edgecolors=edgecolors[i], alpha=alpha, lw=lw, s=size,
+                   label=label[i])
 
         if num_plots > 1:
             a = counter // ncols
@@ -441,7 +488,8 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
 
             # make plot for individual key/experiment trial
             ax2 = axs[a, b]
-            ax2.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], alpha=0.8, lw=0, s=size, label=label[i])
+            ax2.scatter(x=x_list[i], y=y_data[i], facecolors=colors[i], edgecolors=edgecolors[i], alpha=alpha, lw=lw,
+                        s=size, label=label[i])
             ax2.set_xlim(-50, 50)
             ax2.set_title(f"{kwargs['ax_titles'][i]}") if 'ax_titles' in kwargs.keys() else None
             counter += 1
@@ -449,6 +497,7 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
             ax.set_title(f"{kwargs['ax_titles'][i]}") if 'ax_titles' in kwargs.keys() else None
 
     ax.set_xlim(kwargs['x_lim'][0], kwargs['x_lim'][1]) if 'x_lim' in kwargs.keys() else None
+    ax.set_ylim(kwargs['y_lim'][0], kwargs['y_lim'][1]) if 'y_lim' in kwargs.keys() else None
     ax.set_xlabel(kwargs['x_label']) if 'x_label' in kwargs.keys() else None
     ax.set_ylabel(kwargs['y_label']) if 'y_label' in kwargs.keys() else None
 
@@ -479,7 +528,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
     :param plot_avg: if more than two traces, whether to plot average of the data traces
     :param plot_std: if more than two traces, whether to plot std of the data traces, if false will plot individual data traces in random color
     :param kwargs: (optional)
-        colors: list, colors to use to plot >1 data traces
+        line_colors: list, line_colors to use to plot >1 data traces
         y_labels: list, y_labels to use to plot >1 data traces
         x_labels: list, x_labels to use to plot >1 data traces
         ax_titles: list of ax_titles to use to plot >1 data traces
@@ -530,20 +579,22 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
     if x_range is not None:
         if type(x_range) is list:
             x_range = np.asarray(x_range)
-        assert x_range.shape == data_arr.shape, print('|- AssertionError: mismatch between data to plot and x_range provided for this data')
+        assert x_range.shape == data_arr.shape, print(
+            '|- AssertionError: mismatch between data to plot and x_range provided for this data')
     else:
         x_range = np.empty_like(data_arr)
         for i in range(num_traces):
             x_range[i] = range(len(data_arr[i]))
 
-    # make random colors for plotting
-    if 'colors' not in kwargs.keys():
+    # make random line_colors for plotting
+    if 'line_colors' not in kwargs.keys():
         colors = make_random_color_array(num_traces) if num_traces > 1 else ['black']
     else:
-        assert type(kwargs['colors']) is list, print('|- AssertionError: provide colors argument in list form')
-        assert len(kwargs['colors']) == num_traces, print(
-            '|- AssertionError: provide enough colors as number of traces to plot')
-        colors = kwargs['colors']
+        assert type(kwargs['line_colors']) is list, print(
+            '|- AssertionError: provide line_colors argument in list form')
+        assert len(kwargs['line_colors']) == num_traces, print(
+            '|- AssertionError: provide enough line_colors as number of traces to plot')
+        colors = kwargs['line_colors']
 
     # check integrity of function call arguments
     if 'y_labels' in kwargs.keys() and len(kwargs['y_labels']) > 1: assert len(kwargs['y_labels']) == num_traces
@@ -564,9 +615,12 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         for i in range(num_traces):
             axs[ax_counter].plot(x_range[i], data_arr[i], color=colors[i], alpha=alpha)
             if num_axes > 1:
-                axs[ax_counter].set_xlabel(kwargs['ax_titles'][i], fontsize=fontsize) if 'ax_titles' in kwargs.keys() else None
-                axs[ax_counter].set_xlabel(kwargs['x_labels'][i], fontsize=fontsize) if 'x_labels' in kwargs.keys() else None
-                axs[ax_counter].set_ylabel(kwargs['y_labels'][i], fontsize=fontsize) if 'y_labels' in kwargs.keys() else None
+                axs[ax_counter].set_xlabel(kwargs['ax_titles'][i],
+                                           fontsize=fontsize) if 'ax_titles' in kwargs.keys() else None
+                axs[ax_counter].set_xlabel(kwargs['x_labels'][i],
+                                           fontsize=fontsize) if 'x_labels' in kwargs.keys() else None
+                axs[ax_counter].set_ylabel(kwargs['y_labels'][i],
+                                           fontsize=fontsize) if 'y_labels' in kwargs.keys() else None
                 ax_counter += 1
     if num_axes == 1 and twin_x is False and num_traces > 1:
         if plot_avg:
@@ -579,7 +633,8 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
             std_high = np.mean(data_arr, axis=0) + np.std(data_arr, axis=0)
             axs[ax_counter].fill_between(x_range[0], std_low, std_high, color='gray', alpha=0.5, zorder=0)
 
-        axs[ax_counter].set_title(kwargs['title'], fontsize=fontsize*1.1, wrap=True) if 'title' in kwargs.keys() else axs[ax_counter].set_title(f"{num_traces} traces")
+        axs[ax_counter].set_title(kwargs['title'], fontsize=fontsize * 1.1, wrap=True) if 'title' in kwargs.keys() else \
+        axs[ax_counter].set_title(f"{num_traces} traces")
         axs[ax_counter].set_ylabel(kwargs['y_label'], fontsize=fontsize) if 'y_label' in kwargs.keys() else None
         axs[ax_counter].set_xlabel(kwargs['x_label'], fontsize=fontsize) if 'x_label' in kwargs.keys() else None
         axs[ax_counter].set_ylabel(kwargs['y_labels'], fontsize=fontsize) if 'y_labels' in kwargs.keys() else None
@@ -587,9 +642,11 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
 
     return None
 
+
 ### plot the location of provided coordinates
-@plot_piping_decorator(figsize=(5,5), verbose=False)
-def plot_coordinates(coords: list,  frame_x: int, frame_y: int, background: np.ndarray = None, fig=None, ax=None, **kwargs):
+@plot_piping_decorator(figsize=(5, 5), verbose=False)
+def plot_coordinates(coords: list, frame_x: int, frame_y: int, background: np.ndarray = None, fig=None, ax=None,
+                     **kwargs):
     """
     plot coordinate locations
 
@@ -613,20 +670,19 @@ def plot_coordinates(coords: list,  frame_x: int, frame_y: int, background: np.n
     # shrink or enlarge the fontsize option:
     fontsize = kwargs['fontsize'] if 'fontsize' in kwargs.keys() else 10
 
-
     for (x, y) in coords:
         ax.scatter(x=x, y=y, edgecolors=edgecolors, facecolors=facecolors, linewidths=2.0)
 
-    ax.set_title(kwargs['title'], fontsize=fontsize * 1.1, wrap=True) if 'title' in kwargs.keys() else ax.set_title(f"{len(coords)} coordinates")
+    ax.set_title(kwargs['title'], fontsize=fontsize * 1.1, wrap=True) if 'title' in kwargs.keys() else ax.set_title(
+        f"{len(coords)} coordinates")
 
     ax.margins(0)
     fig.tight_layout()
 
 
-
 # plot a 2d histogram density plot
-@plot_piping_decorator(figsize=(5,5), verbose=False)
-def plot_hist2d(data: np.array,  fig=None, ax=None, **kwargs):
+@plot_piping_decorator(figsize=(5, 5), verbose=False)
+def plot_hist2d(data: np.array, fig=None, ax=None, **kwargs):
     """
     plot 2d histogram
 
@@ -643,13 +699,13 @@ def plot_hist2d(data: np.array,  fig=None, ax=None, **kwargs):
     bins = kwargs['bins'] if 'bins' in kwargs.keys() and len(kwargs['bins']) == 2 else [100, 100]
     print(f"|- plotting with: {bins} (Nx, Ny) bins [.1]")
 
-
     # shrink or enlarge the fontsize option:
     fontsize = kwargs['fontsize'] if 'fontsize' in kwargs.keys() else 10
 
     ax.hist2d(data[:, 0], data[:, 1], bins=bins, cmap=cmap)
 
-    ax.set_title(kwargs['title'], fontsize=fontsize * 1.1, wrap=True) if 'title' in kwargs.keys() else ax.set_title(f"2d density plot, {bins} bins")
+    ax.set_title(kwargs['title'], fontsize=fontsize * 1.1, wrap=True) if 'title' in kwargs.keys() else ax.set_title(
+        f"2d density plot, {bins} bins")
     ax.set_ylabel(kwargs['y_label'], fontsize=fontsize) if 'y_label' in kwargs.keys() else None
     ax.set_xlabel(kwargs['x_label'], fontsize=fontsize) if 'x_label' in kwargs.keys() else None
 
@@ -658,6 +714,7 @@ def plot_hist2d(data: np.array,  fig=None, ax=None, **kwargs):
 
     ax.margins(0)
     fig.tight_layout()
+
 
 def lighten_color(color, amount=0.5):
     """
@@ -681,9 +738,6 @@ def lighten_color(color, amount=0.5):
     return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
 
-
-
-
 # plotting function for plotting a bar graph with the individual data points shown as well
 def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list = [], points: bool = True,
                          bar: bool = True, colors: list = ['black'], ylims=None, xlims=True, text_list=None,
@@ -701,7 +755,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
     :param legend_labels:
     :param points: bool; if True plot individual data points for each category in data using scatter function
     :param bar: bool, if True plot the bar, if False plot only the mean line
-    :param colors: colors (by category) to use for each x group
+    :param colors: line_colors (by category) to use for each x group
     :param ylims: tuple; y axis limits
     :param xlims: the x axis is used to position the bars, so use this to move the position of the bars left and right
     :param x_label: x axis label
@@ -1015,16 +1069,6 @@ def plot_single_tiff(tiff_path: str, title: str = None, frame_num: int = 0):
         plt.suptitle('frame num: %s' % frame_num)
     plt.show()
     return stack
-
-
-# read matlab array
-def load_matlab_array(path):
-    """
-    Returns a matlab array read in from the path given in path.
-    :param path: path to the matlab output file ending in .mat
-    :return: array
-    """
-    return io.loadmat(path)
 
 
 ############### CALCIUM IMAGING RELATED STUFF ##########################################################################

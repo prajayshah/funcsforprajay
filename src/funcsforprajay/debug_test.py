@@ -104,7 +104,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
     :param plot_avg: if more than two traces, whether to plot average of the data traces
     :param plot_std: if more than two traces, whether to plot std of the data traces, if false will plot individual data traces in random color
     :param kwargs: (optional)
-        colors: list, colors to use to plot >1 data traces
+        line_colors: list, line_colors to use to plot >1 data traces
         y_labels: list, y_labels to use to plot >1 data traces
         x_labels: list, x_labels to use to plot >1 data traces
         ax_titles: list of ax_titles to use to plot >1 data traces
@@ -155,14 +155,14 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         for i in range(num_traces):
             x_range[i] = range(len(data_arr[i]))
 
-    # make random colors for plotting
-    if 'colors' not in kwargs.keys():
+    # make random line_colors for plotting
+    if 'line_colors' not in kwargs.keys():
         colors = make_random_color_array(num_traces)
     else:
-        assert type(kwargs['colors']) is list, print('|- AssertionError: provide colors argument in list form')
-        assert len(kwargs['colors']) == num_traces, print(
-            '|- AssertionError: provide enough colors as number of traces to plot')
-        colors = kwargs['colors']
+        assert type(kwargs['line_colors']) is list, print('|- AssertionError: provide line_colors argument in list form')
+        assert len(kwargs['line_colors']) == num_traces, print(
+            '|- AssertionError: provide enough line_colors as number of traces to plot')
+        colors = kwargs['line_colors']
 
     # check integrity of function call arguments
     if 'y_labels' in kwargs.keys():
@@ -208,7 +208,7 @@ t = make_general_plot(data_arr=data_arr, xrange=[range(11), range(6)[::2]], colo
                       plot_avg=False, suptitle='a new title', show=True)
 
 # fig, ax = plt.subplots(figsize=(3,3))
-# t = make_general_plot(data_arr=data_arr, xrange=[range(11), range(6)[::2]], colors=['green', 'blue'], plot_std=False,
+# t = make_general_plot(data_arr=data_arr, xrange=[range(11), range(6)[::2]], line_colors=['green', 'blue'], plot_std=False,
 #                       plot_avg=False, suptitle='a new title', fig=fig, ax=ax, show=True)
 
 

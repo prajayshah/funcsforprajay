@@ -2,10 +2,8 @@ import os
 import sys
 import re
 import pickle
-import numpy
 import numpy as np
 import pandas as pd
-import tifffile
 from scipy import stats, ndimage, io
 import itertools
 import matplotlib.pyplot as plt
@@ -16,7 +14,7 @@ import tifffile as tf
 import math
 import csv
 
-from funcsforprajay.wrappers import plot_piping_decorator, print_start_end_plot
+from funcsforprajay.wrappers import plot_piping_decorator
 
 
 ############### GENERALLY USEFUL FUNCTIONS #############################################################################
@@ -31,7 +29,8 @@ def list_in_dir(dir_path: str):
 
 
 def timer(start, end):
-    "source: https://stackoverflow.com/questions/27779677/how-to-format-elapsed-time-from-seconds-to-hours-minutes-seconds-and-milliseco"
+    """source: https://stackoverflow.com/questions/27779677/how-to-format-elapsed-time-from-seconds-to-hours-minutes
+    -seconds-and-milliseco"""
     hours, rem = divmod(end - start, 3600)
     minutes, seconds = divmod(rem, 60)
     print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds) + ' hours, mins, seconds')
@@ -39,7 +38,7 @@ def timer(start, end):
 
 # report sizes of variables
 def _sizeof_fmt(num, suffix='B'):
-    ''' by Fred Cirera,  https://stackoverflow.com/a/1094933/1870254, modified'''
+    """ by Fred Cirera,  https://stackoverflow.com/a/1094933/1870254, modified"""
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return "%3.1f %s%s" % (num, unit, suffix)
@@ -157,7 +156,7 @@ def save_pkl(obj, pkl_path: str):
             pickle.dump(obj, f)
         print(f"\- saved to {pkl_path} -- ")
     else:
-        NotADirectoryError(f'parent directory of {pkl_path} cannot be reached.')
+        raise NotADirectoryError(f'parent directory of {pkl_path} cannot be reached.')
 
 
 # load .pkl files from the specified pkl_path
@@ -414,14 +413,6 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None,
     :return None
     """
 
-    # ## func arguments
-    # kwargs = {}
-    #
-    # y_data = [[]]
-    # x_list = [[]]
-    # line_colors = [[]]
-
-    ##
     assert len(y_data) == len(x_list), 'y_data length does not match x_list length'
 
     num_plots = len(x_list)
@@ -634,7 +625,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
             axs[ax_counter].fill_between(x_range[0], std_low, std_high, color='gray', alpha=0.5, zorder=0)
 
         axs[ax_counter].set_title(kwargs['title'], fontsize=fontsize * 1.1, wrap=True) if 'title' in kwargs.keys() else \
-        axs[ax_counter].set_title(f"{num_traces} traces")
+            axs[ax_counter].set_title(f"{num_traces} traces")
         axs[ax_counter].set_ylabel(kwargs['y_label'], fontsize=fontsize) if 'y_label' in kwargs.keys() else None
         axs[ax_counter].set_xlabel(kwargs['x_label'], fontsize=fontsize) if 'x_label' in kwargs.keys() else None
         axs[ax_counter].set_ylabel(kwargs['y_labels'], fontsize=fontsize) if 'y_labels' in kwargs.keys() else None

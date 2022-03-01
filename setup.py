@@ -17,5 +17,15 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages(where='src'),
     python_requires='>=3.6',
-    zip_safe=False
+    zip_safe=False,
+    install_requires=[
+            'pandas',
+            'scipy',
+            'numpy>=1.18.5',
+            'matplotlib',
+            'seaborn',
+            'scikit-image',
+            'scikit-learn',
+            'tifffile'
+        ],
 )

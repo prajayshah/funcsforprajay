@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import random
 import tifffile as tf
 
-from funcsforprajay.wrappers import plot_piping_decorator, print_start_end_plot
+from funcsforprajay.wrappers import plot_piping_decorator
 
 
 # plotting settings
@@ -79,7 +79,7 @@ def make_random_color_array(n_colors):
 # plotting function for plotting a bar graph with the individual data points shown as well
 def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list = [], points: bool = True,
                          bar: bool = True, colors: list = ['black'], ylims=None, xlims=True, text_list=None,
-                         x_label=None, y_label=None, alpha=0.2, savepath=None, expand_size_x=1, expand_size_y=1,
+                         x_label=None, y_label=None, alpha=0.2, savepath=None,
                          shrink_text: float = 1, show_legend=False, paired=False, title_pad=20, **kwargs):
     """
     all purpose function for plotting a bar graph of multiple categories with the option of individual datapoints shown
@@ -108,18 +108,19 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
     """
 
     # collect some info about data to plot
-    w = 0.3  # mean bar width
-    xrange_ls = list(range(len(data)))
+    w = 1.0  # mean bar width
+    # xrange_ls = list(range(len(data)))
+    xrange_ls = [x + 1.6 for x in range(len(data))]
     y = data
     if len(colors) != len(xrange_ls):
         colors = colors * len(xrange_ls)
 
     # initialize plot
-    if 'fig' in kwargs.keys():
+    if 'fig' in kwargs:
         f = kwargs['fig']
         ax = kwargs['ax']
     else:
-        f, ax = plt.subplots(figsize=((5 * len(xrange_ls) / 2) * expand_size_x, 3 * expand_size_y))
+        f, ax = plt.subplots(figsize=((3 * len(xrange_ls) / 3), 4))
 
     if paired:
         assert len(xrange_ls) > 1
@@ -129,15 +130,15 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
         for i in xrange_ls:
             ## plot the mean line
             ax.plot(np.linspace(xrange_ls[i] * w * 2.5 - w / 2, xrange_ls[i] * w * 2.5 + w / 2, 3), [np.mean(y[i])] * 3,
-                    color='black')
-        lw = 0.8
+                    color='black', zorder=5)
+        lw = 1 if 'lw' not in kwargs else kwargs['lw']
         edgecolor = None
         # since no bar being shown on plot (lw = 0 from above) then use it to plot the error bars
-        ax.errorbar([x * w * 2.5 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
+        ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
                     yerr=np.asarray([np.asarray([0, np.std(yi, ddof=1)]) for yi in y]).T, ecolor='gray',
-                    capsize=5, zorder=0, linewidth=lw)
+                    capsize=5, zorder=5, elinewidth=lw, markeredgewidth=lw)
 
-        ax.bar([x * w * 2.5 for x in xrange_ls],
+        ax.bar([x * w * 2.3 for x in xrange_ls],
                height=[np.mean(yi) for yi in y],
                yerr=[np.std(yi, ddof=1) for yi in y],  # error bars
                capsize=4.5,  # error bar cap width in points
@@ -145,40 +146,36 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
                linewidth=0,  # width of the bar edges
                edgecolor=edgecolor,
                color=(0, 0, 0, 0),  # face edgecolor transparent
-               zorder=0
+               zorder=5
                )
-    elif bar:
-        if 'edgecolor' not in kwargs.keys():
-            edgecolor = 'black',
-            lw = 1
-        else:
-            edgecolor = kwargs['edgecolor'],
-            lw = 1
+    else:
+        lw = 1 if 'lw' not in kwargs else kwargs['lw']
+        edgecolor = 'black' if 'edgecolor' not in kwargs else kwargs['edgecolor']
         # plot bar graph
-        ax.errorbar([x * w * 2.5 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
-                    yerr=np.asarray([np.asarray([0, np.std(yi, ddof=1)]) for yi in y]).T, ecolor='gray',
-                    capsize=5, zorder=0, linewidth=lw)
-        ax.bar([x * w * 2.5 for x in xrange_ls],
+        ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
+                    yerr=np.asarray([np.asarray([0, np.std(yi, ddof=1)]) for yi in y]).T, ecolor='black',
+                    capsize=5, zorder=0, elinewidth=lw, markeredgewidth=lw)
+        ax.bar([x * w * 2.3 for x in xrange_ls],
                height=[np.mean(yi) for yi in y],
                # yerr=np.asarray([np.asarray([0, np.std(yi, ddof=1)]) for yi in y]).T,  # error bars
                capsize=4.5,  # error bar cap width in points
-               width=w,  # bar width
+               width=1.9,  # bar width
                linewidth=lw,  # width of the bar edges
                edgecolor=edgecolor,
-               color=(0, 0, 0, 0),  # face edgecolor transparent
-               zorder=2
+               color=(0, 0, 0, 0),  # facecolor transparent
+               zorder=0
                )
-    else:
-        AttributeError('something wrong happened with the bar bool parameter...')
+    # else:
+    #     AttributeError('something wrong happened with the bar bool parameter...')
 
-    ax.set_xticks([x * w * 2.5 for x in xrange_ls])
+    ax.set_xticks([x * w * 2.3 for x in xrange_ls])
     if len(xrange_ls) > 1:
         ax.set_xticklabels(x_tick_labels, fontsize=10 * shrink_text, rotation=45)
     else:
         ax.set_xticklabels(x_tick_labels, fontsize=10 * shrink_text)
 
     if xlims:
-        ax.set_xlim([(xrange_ls[0] * w * 2) - w * 1.20, (xrange_ls[-1] * w * 2.5) + w * 1.20])
+        ax.set_xlim([(xrange_ls[0] * w * 2) - w * 1.20, (xrange_ls[-1] * w * 2.4) + w * 1.20])
     elif len(xrange_ls) == 1:  # set the x_lims for single bar case so that the bar isn't autoscaled
         xlims_ = [-1, 1]
         ax.set_xlim(xlims_)
@@ -190,20 +187,20 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
 
     if points:
         if not paired:
-            for i in xrange_ls:
+            for i,_ in enumerate(xrange_ls):
                 # distribute scatter randomly across whole width of bar
-                ax.scatter(xrange_ls[i] * w * 2.5 + np.random.random(len(y[i])) * w - w / 2, y[i], color=colors[i],
-                           alpha=alpha, label=legend_labels[i])
+                ax.scatter(xrange_ls[i] * w * 2.3 + np.random.random(len(y[i])) * w - w / 1.8, y[i], facecolor=colors[i], edgecolor='black', lw=1,
+                           alpha=alpha, label=legend_labels[i], zorder=3)
 
         else:  # connect lines to the paired scatter points in the list
             if len(xrange_ls) > 0:
-                for i in xrange_ls:
+                for i, _ in enumerate(xrange_ls):
                     # plot points  # dont scatter location of points if plotting paired lines
-                    ax.scatter([xrange_ls[i] * w * 2.5] * len(y[i]), y[i], color=colors[i], alpha=0.5,
+                    ax.scatter([xrange_ls[i] * w * 2.3] * len(y[i]), y[i], color=colors[i], alpha=0.5,
                                label=legend_labels[i], zorder=3)
-                for i in xrange_ls[:-1]:
+                for i, _ in enumerate(xrange_ls[:-1]):
                     for point_idx in range(len(y[i])):  # draw the lines connecting pairs of data
-                        ax.plot([xrange_ls[i] * w * 2.5 + 0.058, xrange_ls[i + 1] * w * 2.5 - 0.048],
+                        ax.plot([xrange_ls[i] * w * 2.3 + 0.058, xrange_ls[i + 1] * w * 2.5 - 0.048],
                                 [y[i][point_idx], y[i + 1][point_idx]], color='black', zorder=2, alpha=alpha)
 
                 # for point_idx in range(len(y[i])):  # slight design difference, with straight line going straight through the scatter points
@@ -281,7 +278,7 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
     :param x_list: list of x_points for plots, must match one to one to y_data
     :param y_data: list of y_data for plots, must match one to one to x_list
     :param kwargs: (optional)
-        line_colors: list, line_colors to use to plot >1 data sets
+        facecolors: list, line_colors to use to plot >1 data sets
         ax_y_labels: list, y_labels to use to plot >1 data sets
         ax_x_labels: list, x_labels to use to plot >1 data sets
         y_label: str, y_labels to use to plot the combined main plot
@@ -306,10 +303,10 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
 
     num_plots = len(x_list)
 
-    if 'line_colors' not in kwargs.keys(): colors = make_random_color_array(num_plots)
+    if 'facecolors' not in kwargs: colors = make_random_color_array(num_plots)
     else:
-        assert type(kwargs['line_colors']) is list and len(kwargs['line_colors']) == len(x_list), 'provide line_colors argument in list form matching number of traces to plot'
-        colors = kwargs['line_colors']
+        assert type(kwargs['facecolors']) is list and len(kwargs['facecolors']) == len(x_list), 'provide line_colors argument in list form matching number of traces to plot'
+        colors = kwargs['facecolors']
 
     edgecolors = colors if 'edgecolors' not in [*kwargs] else kwargs['edgecolors']
 
@@ -318,12 +315,12 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
     else: alpha = 0.8
     if 's' in kwargs.keys(): size = kwargs['s']
     else: size = 50
-    lw = 0 if 'lw' not in [*kwargs] else kwargs['lw']
+    lw = None if 'lw' not in [*kwargs] else kwargs['lw']
 
 
     # check integrity of function call arguments
-    if 'ax_y_labels' in kwargs.keys() and type(kwargs['ax_y_labels']) is list: assert len(kwargs['y_labels']) == num_plots
-    if 'ax_x_labels' in kwargs.keys() and type(kwargs['ax_x_labels']) is list: assert len(kwargs['x_labels']) == num_plots
+    if 'y_labels' in kwargs.keys() and type(kwargs['y_labels']) is list: assert len(kwargs['y_labels']) == num_plots
+    if 'x_labels' in kwargs.keys() and type(kwargs['x_labels']) is list: assert len(kwargs['x_labels']) == num_plots
     if 'ax_titles' in kwargs.keys() and type(kwargs['ax_titles']) is list: assert len(kwargs['ax_titles']) == num_plots
 
     if 'legend_labels' in kwargs.keys() and type(kwargs['legend_labels']) is list:
@@ -340,8 +337,8 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
         fig2, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=[(ncols * 4), (nrows * 3)])
         counter = 0
 
-        axs[0, 0].set_xlabel(kwargs['ax_x_labels'][0]) if 'ax_x_labels' in kwargs.keys() else None
-        axs[0, 0].set_ylabel(kwargs['ax_y_labels'][0]) if 'ax_y_labels' in kwargs.keys() else None
+        axs[0, 0].set_xlabel(kwargs['x_labels'][0]) if 'x_labels' in kwargs.keys() else None
+        axs[0, 0].set_ylabel(kwargs['y_labels'][0]) if 'y_labels' in kwargs.keys() else None
 
     # prep for single small plot with all plots
     # fig, ax = plt.subplots(figsize=(4, 3))
@@ -366,8 +363,8 @@ def make_general_scatter(x_list: list, y_data: list, fig=None, ax=None, **kwargs
 
     ax.set_xlim(kwargs['x_lim'][0], kwargs['x_lim'][1]) if 'x_lim' in kwargs.keys() else None
     ax.set_ylim(kwargs['y_lim'][0], kwargs['y_lim'][1]) if 'y_lim' in kwargs.keys() else None
-    ax.set_xlabel(kwargs['x_label']) if 'x_label' in kwargs.keys() else None
-    ax.set_ylabel(kwargs['y_label']) if 'y_label' in kwargs.keys() else None
+    ax.set_xlabel(kwargs['x_labels'][0]) if 'x_labels' in kwargs.keys() else None
+    ax.set_ylabel(kwargs['y_labels'][0]) if 'y_labels' in kwargs.keys() else None
 
     ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left") if 'legend_labels' in kwargs.keys() else None
 

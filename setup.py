@@ -27,5 +27,5 @@ setup(
             'scikit-image',
             'scikit-learn',
             'tifffile'
-        ],
+        ]
 )

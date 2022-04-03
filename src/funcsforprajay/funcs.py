@@ -8,6 +8,7 @@ from scipy import stats, ndimage, io
 import itertools
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import seaborn as sns
 import random
 from sklearn.decomposition import PCA
 import tifffile as tf
@@ -165,10 +166,28 @@ def load_pkl(pkl_path: str):
         f = pickle.load(open(pkl_path, 'rb'))
         return f
     else:
-        raise FileExistsError(f"{pkl_path} not found")
+        raise FileNotFoundError(f"{pkl_path} not found")
 
 
 ############### STATS/DATA ANALYSIS FUNCTIONS ##########################################################################
+
+def eq_line_2points(p1, p2):
+    """
+    returns the y = mx + b equation given two points.
+    :param p1: point 1, x and y coord
+    :param p2: point 2, x and y coord
+    """
+    from numpy import ones, vstack
+    from numpy.linalg import lstsq
+    x_coords, y_coords = zip(*[p1, p2])
+    A = vstack([x_coords, ones(len(x_coords))]).T
+    m, c = lstsq(A, y_coords)[0]
+    print(f'x: {x_coords}')
+    print(f'y: {y_coords}')
+    print("Line Solution is y = {m}x + {c}".format(m=m, c=c))
+    return m, c
+
+
 def moving_average(a, n=4):
     ret = np.cumsum(a)
     ret[n:] = ret[n:] - ret[:-n]
@@ -925,7 +944,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
 
 # histogram density plot with gaussian best fit line
 def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, fill_color: list = None,
-                      legend_labels: list = [None], num_bins=10, **kwargs):
+                      legend_labels: list = [None], num_bins=10, best_fit_line='gaussian', **kwargs):
     """
 
     :param data: list; nested list containing the data; if only one array to plot then provide array enclosed inside list (e.g. [array])
@@ -937,14 +956,14 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
     :return:
     """
 
-    if 'fig' in kwargs.keys():
+    if 'ax' in [*kwargs] and 'fig' in [*kwargs]:
         fig = kwargs['fig']
         ax = kwargs['ax']
     else:
         if 'figsize' in kwargs.keys():
             fig, ax = plt.subplots(figsize=kwargs['figsize'])
         else:
-            fig, ax = plt.subplots(figsize=[20, 3])
+            fig, ax = plt.subplots(figsize=[5, 5])
 
     if colors is None:
         colors = ['black'] * len(data)
@@ -969,18 +988,42 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
     zorder = 2
     for i in range(len(data)):
         # the histogram of the data
-        n, bins, patches = ax.hist(data[i], num_bins, density=1, alpha=0.4, color=fill_color[i],
-                                   label=legend_labels[i])  # histogram hidden currently
+        bin_heights, bins, patches = ax.hist(data[i], num_bins, density=1, alpha=0.4, color=fill_color[i],
+                                             label=legend_labels[i])  # histogram hidden currently
 
         # add a 'best fit' line
-        mu = np.mean(data[i])  # mean of distribution
-        sigma = np.std(data[i])  # standard deviation of distribution
+        if best_fit_line == 'powerlaw':
+            from scipy.optimize import curve_fit
 
-        x = np.linspace(bins[0], bins[-1], num_bins * 5)
-        y1 = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
-              np.exp(-0.5 * (1 / sigma * (x - mu)) ** 2))
-        ax.plot(x, y1, linewidth=2, c=colors[i], zorder=zorder + i)
-        ax.fill_between(x, y1, color=fill_color[i], zorder=zorder + i, alpha=alpha)
+            def func_powerlaw(x, m, c, c0):
+                return c0 + x ** m * c
+            target_func = func_powerlaw
+
+            X = np.linspace(bins[0], bins[-1], num_bins)
+            y = bin_heights
+            popt, pcov = curve_fit(target_func, X, y, maxfev = 1000000)
+
+            ax.plot(X, target_func(X, *popt), linewidth=2, c=colors[i], zorder=zorder + i)
+            ax.fill_between(X, target_func(X, *popt), color=fill_color[i], zorder=zorder + i, alpha=alpha)
+            print(bins)
+            print('m, c, c0: \n\t', popt)
+            title = 'Histogram density: powerlaw fit'
+
+        elif best_fit_line == 'gaussian':
+            # fitting a gaussian
+            mu = np.mean(data[i])  # mean of distribution
+            sigma = np.std(data[i])  # standard deviation of distribution
+
+            x = np.linspace(bins[0], bins[-1], num_bins * 5)
+            popt = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+                  np.exp(-0.5 * (1 / sigma * (x - mu)) ** 2))
+
+            ax.plot(x, popt, linewidth=2, c=colors[i], zorder=zorder + i)
+            ax.fill_between(x, popt, color=fill_color[i], zorder=zorder + i, alpha=alpha)
+
+            title = (r': $\mu=%s$, $\sigma=%s$' % (round(mu, 2), round(sigma, 2)))
+        else:
+            title = ''
 
         if mean_line:
             ax.axvline(x=np.nanmean(data[i]), c=fill_color[i], linewidth=2, zorder=0, linestyle='dashed')
@@ -1008,18 +1051,18 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
         shrink_text = 1
 
     # add title
-    if 'fig' not in kwargs.keys():
-        if 'title' in kwargs and kwargs['title'] is not None:
-            if len(data) == 1:
-                ax.set_title(kwargs['title'] + r': $\mu=%s$, $\sigma=%s$' % (round(mu, 2), round(sigma, 2)), wrap=True,
-                             fontsize=12 * shrink_text)
-            else:
-                ax.set_title(kwargs['title'], wrap=True, fontsize=12 * shrink_text)
+    if 'title' in kwargs and kwargs['title'] is not None:
+        if len(data) == 1:
+            ax.set_title(kwargs['title'] + title, wrap=True,
+                         fontsize=12 * shrink_text)
         else:
-            if len(data) == 1:
-                ax.set_title(r'Histogram: $\mu=%s$, $\sigma=%s$' % (round(mu, 2), round(sigma, 2)))
-            else:
-                ax.set_title('Histogram density plot')
+            ax.set_title(kwargs['title'], wrap=True, fontsize=12 * shrink_text)
+    else:
+        if len(data) == 1:
+            ax.set_title(title)
+        else:
+            ax.set_title('Histogram density plot')
+
 
     if 'show' in kwargs.keys():
         if kwargs['show'] is True:
@@ -1034,13 +1077,6 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
         fig.show()
 
     if 'fig' in kwargs.keys():
-        # adding text because adding title doesn't seem to want to work when piping subplots
-        ax.set_title(kwargs['title'] + r': $\mu=%s$, $\sigma=%s$' % (round(mu, 2), round(sigma, 2)), wrap=True,
-                     fontsize=12 * shrink_text)
-        # ax.text(0.98, 0.97, kwargs['title'] + r': $\mu=%s$, $\sigma=%s$' % (round(mu, 2), round(sigma, 2)),
-        #         verticalalignment='top', horizontalalignment='right',
-        #         transform=ax.transAxes, fontweight='bold',
-        #         color='black', fontsize=10 * shrink_text)
         return fig, ax
 
 
@@ -1397,3 +1433,24 @@ def convert_to_8bit(img, target_type_min=0, target_type_max=255):
     return new_img
 
 #######
+
+
+#### UTILS
+def dataplot_frame_options():
+    import matplotlib as mpl
+
+    mpl.rcParams.update({
+        'axes.spines.top': False,
+        'axes.spines.right': False,
+        'legend.fontsize': 'x-large',
+        'axes.labelsize': 'x-large',
+        'axes.titlesize': 'x-large',
+        'xtick.labelsize': 'x-large',
+        'ytick.labelsize': 'x-large',
+        'legend.frameon': False,
+        'figure.subplot.wspace': .01,
+        'figure.subplot.hspace': .01,
+    })
+    sns.set()
+    sns.set_style('white')
+

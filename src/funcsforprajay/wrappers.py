@@ -88,7 +88,7 @@ def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
 
             kwargs['fig'].tight_layout(pad=1.8)
 
-            if 'show' in kwargs.keys():
+            if 'show' in kwargs:
                 if kwargs['show'] is True:
                     # print(f'\- showing fig of size {figsize_}...[3]')
                     kwargs['fig'].show()
@@ -97,9 +97,9 @@ def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
                 else:
                     # print(f"\- not showing, but returning fig_obj of size {figsize_}[4]")
                     if res is not None:
-                        return (kwargs['fig'], kwargs['ax'], res)
+                        return kwargs['fig'], kwargs['ax'], res
                     else:
-                        return (kwargs['fig'], kwargs['ax'])
+                        return kwargs['fig'], kwargs['ax']
             else:
                 # print(f'\- showing fig of size {figsize_}...[5]')
                 kwargs['fig'].show()

@@ -14,6 +14,21 @@ def test_plot_hist_density():
 def test_plot_bar_with_points():
     data = [np.random.random(100) for i in range(3)]
     from funcsforprajay.plotting.plotting import plot_bar_with_points
-    plot_bar_with_points(data=data, bar=True, x_tick_labels=['baseline', 'interictal', 'ictal'],
-            colors=['blue', 'green', 'purple'], lw=1.3,
+    plot_bar_with_points(data=data, bar=False, x_tick_labels=['baseline', 'interictal', 'ictal'],
+            colors=['blue', 'green', 'purple'], lw=1.3, alpha=0.6,
             title='Average s2p ROIs spk rate', y_label='spikes rate (Hz)')
+
+def test_plot_bar_with_points_single_set():
+    data = [np.random.random(50) for i in range(1)]
+    from funcsforprajay.plotting.plotting import plot_bar_with_points
+    plot_bar_with_points(data=data, bar=False, x_tick_labels=['baseline'],
+            colors=['blue'], lw=1.3,
+            title='Average ', y_label='rate (Hz)')
+
+
+def test_plot_bar_with_points_paired_set():
+    data = [np.random.random(50) + i / 10 for i in range(2)]
+    from funcsforprajay.plotting.plotting import plot_bar_with_points
+    plot_bar_with_points(data=data, bar=False, x_tick_labels=['baseline'], paired=True,
+            colors=['blue', 'green'], lw=1.3,
+            title='Average', y_label='rate (Hz)')

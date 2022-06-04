@@ -2,6 +2,8 @@ import os
 import sys
 import re
 import pickle
+from typing import Union
+
 import numpy as np
 import pandas as pd
 from scipy import stats, ndimage, io
@@ -140,13 +142,19 @@ def findClosest(arr, input):
 
 
 # flatten list of lists
-def flattenOnce(list, asarray=False):
+def flattenOnce(list: Union[list, tuple], asarray=False):
     """ flattens a nested list by one nesting level (should be able to run multiple times to get further down if needed for
      deeper nested lists) """
-    if not asarray:
-        return [x for i in list for x in i]
-    elif asarray:
-        return np.asarray([x for i in list for x in i])
+    # if not asarray:
+    #     isnot_list = [False for i in list if type(i) != list]
+    #     if len(isnot_list) > 0:
+    #         print('not a nested list, so returning original list.')
+    #         return list
+    #     l_ = []
+    #     return [l_.extend() for i in list]
+    # elif asarray:
+    #     return np.asarray([x for i in list for x in i])
+    return [x for i in list for x in i]
 
 
 # save .pkl files from the specified pkl_path
@@ -956,14 +964,8 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
     :return:
     """
 
-    if 'ax' in [*kwargs] and 'fig' in [*kwargs]:
-        fig = kwargs['fig']
-        ax = kwargs['ax']
-    else:
-        if 'figsize' in kwargs.keys():
-            fig, ax = plt.subplots(figsize=kwargs['figsize'])
-        else:
-            fig, ax = plt.subplots(figsize=[5, 5])
+    fig = kwargs['fig']
+    ax = kwargs['ax']
 
     if colors is None:
         colors = ['black'] * len(data)
@@ -1064,20 +1066,20 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
             ax.set_title('Histogram density plot')
 
 
-    if 'show' in kwargs.keys():
-        if kwargs['show'] is True:
-            # Tweak spacing to prevent clipping of ylabel
-            fig.tight_layout()
-            fig.show()
-        else:
-            pass
-    else:
-        # Tweak spacing to prevent clipping of ylabel
-        fig.tight_layout()
-        fig.show()
-
-    if 'fig' in kwargs.keys():
-        return fig, ax
+    # if 'show' in kwargs.keys():
+    #     if kwargs['show'] is True:
+    #         # Tweak spacing to prevent clipping of ylabel
+    #         fig.tight_layout()
+    #         fig.show()
+    #     else:
+    #         pass
+    # else:
+    #     # Tweak spacing to prevent clipping of ylabel
+    #     fig.tight_layout()
+    #     fig.show()
+    #
+    # if 'fig' in kwargs.keys():
+    #     return fig, ax
 
 
 # imshow gray plot for a single frame tiff
@@ -1453,4 +1455,20 @@ def dataplot_frame_options():
     })
     sns.set()
     sns.set_style('white')
+
+
+def lineplot_frame_options(fig, ax, x_label='', y_label=''):
+
+    sns.set()
+    sns.set_style('white')
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    # ax.spines['left'].set_visible(True)
+    ax.margins(0)
+    ax.set_xlabel('distance to target (um)')
+    ax.set_ylabel('influence of photostim')
+
+
+
 

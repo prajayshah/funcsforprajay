@@ -71,10 +71,10 @@ def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
             if 'fig' in kwargs.keys() and 'ax' in kwargs.keys():
                 if kwargs['fig'] is None or kwargs['ax'] is None:
                     # print('\-creating fig, ax [1]')
-                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_)
+                    kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_, dpi=300)
             else:
                 # print('\-creating fig, ax [2]')
-                kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_)
+                kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_, dpi=300)
 
 
 

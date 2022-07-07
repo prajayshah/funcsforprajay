@@ -1,6 +1,8 @@
 # this script contains wrapper that are to be used elsewhere`
 
 import functools
+import os
+
 import matplotlib.pyplot as plt
 
 
@@ -68,15 +70,14 @@ def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
                 figsize_ = figsize
 
             # create or retrieve the fig, ax objects --> end up in kwargs to use into the plotting func call below
-            if 'fig' in kwargs.keys() and 'ax' in kwargs.keys():
+            if 'fig' in kwargs and 'ax' in kwargs:
                 if kwargs['fig'] is None or kwargs['ax'] is None:
                     # print('\-creating fig, ax [1]')
                     kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_, dpi=300)
             else:
                 # print('\-creating fig, ax [2]')
                 kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_, dpi=300)
-
-
+                kwargs['fig'].tight_layout(pad=1.8)
 
             # print(f"\nnew kwargs {kwargs}")
 
@@ -86,7 +87,10 @@ def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
             # print(f'\nreturn fig, ax or show figure as called for')
             kwargs['fig'].suptitle(kwargs['suptitle'], wrap=True) if 'suptitle' in kwargs.keys() else None
 
-            kwargs['fig'].tight_layout(pad=1.8)
+            if 'save_path' in kwargs:
+                os.makedirs(os.path.dirname(kwargs['save_path']), exist_ok=True)
+                kwargs['fig'].savefig(kwargs['save_path'])
+                kwargs['fig'].savefig(kwargs['save_path'][:-4] + '.svg')
 
             if 'show' in kwargs:
                 if kwargs['show'] is True:
@@ -104,6 +108,7 @@ def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
                 # print(f'\- showing fig of size {figsize_}...[5]')
                 kwargs['fig'].show()
                 return res
+
 
             # # print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
             # print(f"\- returning fig_obj [4]") if return_fig_obj else None

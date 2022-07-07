@@ -1466,8 +1466,8 @@ def lineplot_frame_options(fig, ax, x_label='', y_label=''):
     ax.spines['right'].set_visible(False)
     # ax.spines['left'].set_visible(True)
     ax.margins(0)
-    ax.set_xlabel('distance to target (um)')
-    ax.set_ylabel('influence of photostim')
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
 
 
 

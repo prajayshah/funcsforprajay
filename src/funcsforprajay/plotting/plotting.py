@@ -4,6 +4,7 @@ import random
 import tifffile as tf
 from scipy import stats
 
+from funcsforprajay.funcs import flattenOnce
 from funcsforprajay.wrappers import plot_piping_decorator
 
 
@@ -84,10 +85,11 @@ def make_random_color_array(n_colors):
 
 
 # plotting function for plotting a bar graph with the individual data points shown as well
-def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list = [], points: bool = True,
+def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list = [], points: bool = True,
                          bar: bool = True, colors: list = ['black'], ylims=None, xlims=True, text_list=None,
-                         x_label=None, y_label=None, alpha=0.2, savepath=None,
-                         shrink_text: float = 1, show_legend=False, paired=False, title_pad=20, **kwargs):
+                         x_label=None, y_label=None, alpha=0.2, savepath=None, fontsize: int = 10,
+                         show_legend=False, paired=False, title_pad=20, sig_compare_lines: dict = None,
+                         **kwargs):
     """
     all purpose function for plotting a bar graph of multiple categories with the option of individual datapoints shown
     as well. The individual datapoints are drawn by adding a scatter plot with the datapoints randomly jittered around the central
@@ -138,9 +140,10 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
     if paired:
         assert len(xrange_ls) > 1
         points_lw = 0 if alpha < 1 else 1
-        s = 10 if 's' not in kwargs else kwargs['s']
+    s = 10 if 's' not in kwargs else kwargs['s']
 
     bar_alpha = 1 if not points else 0.4
+    bar_alpha = kwargs['bar_alpha'] if 'bar_alpha' in kwargs else bar_alpha
 
     # start making plot
     if not bar:
@@ -149,12 +152,13 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
             ax.plot(np.linspace(x_val * w * 2.3 - w / 2, x_val * w * 2.3 + w / 2, 3), [np.mean(y[idx])] * 3,
                     color='black', zorder=0)
         lw = 1 if 'lw' not in kwargs else kwargs['lw']
+        capsize = 1 if 'capsize' not in kwargs else kwargs['capsize']
         edgecolor = None
         # since no bar being shown on plot (lw = 0 from above) then use it to plot the error bars
         ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T,
                     ecolor='black',
-                    capsize=w * 4, zorder=0, elinewidth=lw, markeredgewidth=lw)
+                    capsize=capsize * 4, zorder=0, elinewidth=lw, markeredgewidth=lw)
 
         # ax.bar([x * w * 2.3 for x in xrange_ls],
         #        height=[np.mean(yi) for yi in y],
@@ -192,12 +196,33 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
 
     ax.set_xticks([x * w * 2.3 for x in xrange_ls])
     # x_tick_labels = [round(x * w * 2.3, 2) for x in xrange_ls]  # use for debugging placement of plotted data
+    x_tick_labels = ax.get_xticks() if x_tick_labels is None else x_tick_labels
     assert len(xrange_ls) == len(x_tick_labels), f'not enough x_tick_labels provided. {x_tick_labels}, need {len(xrange_ls)}'
     if len(xrange_ls) > 1:
-        ax.set_xticklabels(x_tick_labels, fontsize=10 * shrink_text, rotation=45)
+        ax.set_xticklabels(x_tick_labels, fontsize=fontsize, rotation=45)
     else:
-        ax.set_xticklabels(x_tick_labels, fontsize=10 * shrink_text)
+        ax.set_xticklabels(x_tick_labels, fontsize=fontsize)
 
+    if sig_compare_lines:
+        if not points: print('CANNOT MAKE SIG. LINES, NEEDS POINTS.')
+        for i, sig_compare_line in sig_compare_lines.items():
+            groups = ax.get_xticks()
+            assert len(sig_compare_line) > 1
+            top_line = [np.max(flattenOnce([data[sig_compare_line[0]], data[sig_compare_line[1]]])) * 1.5] * 2
+            ax.plot([groups[sig_compare_line[0]], groups[sig_compare_line[1]]], top_line, color='black', lw=lw)
+
+            gaps_ = [np.max(data[sig_compare_line[0]]) * 1.25 - np.max(data[sig_compare_line[0]])]
+            gaps_.append(np.max(data[sig_compare_line[1]]) * 1.25 - np.max(data[sig_compare_line[1]]))
+            gap = np.max(gaps_)
+
+            ax.plot([groups[sig_compare_line[0]]] * 2, [np.max(data[sig_compare_line[0]]) + gap, np.max(
+                flattenOnce([data[sig_compare_line[0]], data[sig_compare_line[1]]])) * 1.5], color='black', lw=lw)
+            ax.plot([groups[sig_compare_line[1]]] * 2, [np.max(data[sig_compare_line[1]]) + gap, np.max(
+                flattenOnce([data[sig_compare_line[0]], data[sig_compare_line[1]]])) * 1.5], color='black', lw=lw)
+
+            xy = (np.mean([groups[sig_compare_line[0]], groups[sig_compare_line[1]]]), top_line[0] + top_line[0] * 0.1)
+
+            ax.text(x=xy[0], y=xy[1], s=i, fontsize=fontsize)
 
     if xlims:
         ax.set_xlim([(xrange_ls[0] * w * 2) - w * 1.20, (xrange_ls[-1] * w * 2.4) + w * 1.20])
@@ -216,7 +241,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
                 # distribute scatter randomly across whole width of bar
                 ax.scatter(xrange_ls[i] * w * 2.3 + np.random.random(len(y[i])) * w * 1.4 - w / 1.4, y[i],
                            facecolor=colors[i], edgecolor='black', lw=points_lw,
-                           alpha=alpha, label=legend_labels[i], zorder=9)
+                           alpha=alpha, label=legend_labels[i], zorder=9, s=s)
 
         else:  # connect lines to the paired scatter points in the list
             if len(xrange_ls) > 0:
@@ -242,7 +267,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.tick_params(axis='both', which='both', length=5, labelsize=10*shrink_text)
+    ax.tick_params(axis='both', which='both', length=5, labelsize=fontsize)
 
     # # Only show ticks on the left and bottom spines
     # ax.yaxis.set_ticks_position('left')
@@ -255,8 +280,8 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
 
 
 
-    ax.set_xlabel(x_label, fontsize=10 * shrink_text)
-    ax.set_ylabel(y_label, fontsize=10 * shrink_text)
+    ax.set_xlabel(x_label, fontsize=fontsize)
+    ax.set_ylabel(y_label, fontsize=fontsize)
     if savepath:
         plt.savefig(savepath)
 
@@ -276,15 +301,15 @@ def plot_bar_with_points(data, title='', x_tick_labels=[], legend_labels: list =
 
     if len(legend_labels) > 1:
         if show_legend:
-            ax.legend(bbox_to_anchor=(1.01, 0.90), fontsize=8 * shrink_text)
+            ax.legend(bbox_to_anchor=(1.01, 0.90), fontsize=fontsize)
 
     # add title
     if 'fig' not in kwargs.keys():
         ax.set_title(title, horizontalalignment='center', pad=title_pad,
-                     fontsize=11 * shrink_text, wrap=True)
+                     fontsize=fontsize, wrap=True)
     else:
         ax.set_title((title), horizontalalignment='center', pad=title_pad,
-                     fontsize=11 * shrink_text, wrap=True)
+                     fontsize=fontsize, wrap=True)
 
     if 'show' in kwargs.keys():
         if kwargs['show'] is True:
@@ -709,7 +734,7 @@ def lighten_color(color, amount=0.5):
 # histogram density plot with gaussian best fit line
 @plot_piping_decorator(figsize=(5, 5), verbose=False)
 def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, fill_color: list = None,
-                      legend_labels: list = [None], num_bins=10, best_fit_line='gaussian', density=True, **kwargs):
+                      legend_labels: list = [None], num_bins=11, best_fit_line='gaussian', density=True, **kwargs):
     """
 
     :param data: list; nested list containing the data; if only one array to plot then provide array enclosed inside list (e.g. [array])
@@ -723,6 +748,8 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
 
     fig = kwargs['fig']
     ax = kwargs['ax']
+
+    if not type(data[0]) == list: raise ValueError('need to provide `data` as nested list of list(s) for plotting.')
 
     if colors is None:
         colors = ['black'] * len(data)
@@ -738,16 +765,20 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
         assert len(legend_labels) == len(data), print('please provide a legend label for all your data to be plotted!')
 
     # set the transparancy for the fill of the plot
-    if 'alpha' in kwargs and (type(kwargs['alpha']) is float or kwargs['alpha'] == 1):
-        alpha = kwargs['alpha']
-    else:
-        alpha = 0.3
+    if 'fill_alpha' in kwargs and (type(kwargs['fill_alpha']) is float or kwargs['fill_alpha'] == 1):
+        alpha1 = kwargs['fill_alpha']
+    else: alpha1 = 0.3
 
+    if 'bar_alpha' in kwargs and (type(kwargs['bar_alpha']) is float or kwargs['bar_alpha'] == 1):
+        alpha2 = kwargs['bar_alpha']
+    else: alpha2 = 0.4
+
+    lw = kwargs['lw'] if 'lw' in kwargs else 2
     # make the primary histogram density plot
     zorder = 2
     for i in range(len(data)):
         # the histogram of the data
-        bin_heights, bins, patches = ax.hist(data[i], num_bins, density=density, alpha=0.4, color=fill_color[i],
+        bin_heights, bins, patches = ax.hist(data[i], num_bins, density=density, alpha=alpha2, color=fill_color[i],
                                              label=legend_labels[i])  # histogram hidden currently
 
         # add a 'best fit' line
@@ -764,7 +795,7 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
             popt, pcov = curve_fit(target_func, X, y, maxfev=1000000)
 
             ax.plot(X, target_func(X, *popt), linewidth=2, c=colors[i], zorder=zorder + i)
-            ax.fill_between(X, target_func(X, *popt), color=fill_color[i], zorder=zorder + i, alpha=alpha)
+            ax.fill_between(X, target_func(X, *popt), color=fill_color[i], zorder=zorder + i, alpha=alpha1)
             print(bins)
             print('m, c, c0: \n\t', popt)
             title = 'Histogram density: powerlaw fit'
@@ -778,15 +809,15 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
             popt = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
                     np.exp(-0.5 * (1 / sigma * (x - mu)) ** 2))
 
-            ax.plot(x, popt, linewidth=2, c=colors[i], zorder=zorder + i)
-            ax.fill_between(x, popt, color=fill_color[i], zorder=zorder + i, alpha=alpha)
+            ax.plot(x, popt, linewidth=lw, c=colors[i], zorder=zorder + i)
+            ax.fill_between(x, popt, color=fill_color[i], zorder=zorder + i, alpha=alpha1)
 
             title = (r': $\mu=%s$, $\sigma=%s$' % (round(mu, 2), round(sigma, 2)))
         else:
             title = ''
 
         if mean_line:
-            ax.axvline(x=np.nanmean(data[i]), c=fill_color[i], linewidth=2, zorder=0, linestyle='dashed')
+            ax.axvline(x=np.nanmean(data[i]), c=fill_color[i], linewidth=1.5, zorder=0, linestyle='dashed')
 
     if 'x_label' in kwargs and kwargs['x_label'] is not None:
         ax.set_xlabel(kwargs['x_label'])
@@ -805,18 +836,15 @@ def plot_hist_density(data: list, mean_line: bool = False, colors: list = None, 
         ax.set_xlim(kwargs['xlim'])
 
     # setting shrinking factor for font size for title
-    if 'shrink_text' in kwargs.keys():
-        shrink_text = kwargs['shrink_text']
-    else:
-        shrink_text = 1
+    fontsize = kwargs['fontsize'] if 'fontsize' in kwargs else 10
 
     # add title
     if 'title' in kwargs and kwargs['title'] is not None:
         if len(data) == 1:
             ax.set_title(kwargs['title'] + title, wrap=True,
-                         fontsize=12 * shrink_text)
+                         fontsize=fontsize)
         else:
-            ax.set_title(kwargs['title'], wrap=True, fontsize=12 * shrink_text)
+            ax.set_title(kwargs['title'], wrap=True, fontsize=fontsize)
     else:
         if len(data) == 1:
             ax.set_title(title)

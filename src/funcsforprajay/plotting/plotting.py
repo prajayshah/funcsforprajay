@@ -85,12 +85,14 @@ def make_random_color_array(n_colors):
 
 
 # plotting function for plotting a bar graph with the individual data points shown as well
+@plot_piping_decorator(verbose=False)
 def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list = [], points: bool = True,
                          bar: bool = True, colors: list = ['black'], ylims=None, xlims=True, text_list=None,
-                         x_label=None, y_label=None, alpha=0.2, savepath=None, fontsize: int = 10,
-                         show_legend=False, paired=False, title_pad=20, sig_compare_lines: dict = None,
+                         x_label=None, y_label=None, alpha=0.2, savepath=None, fontsize: int = 8, capsize=5,
+                         show_legend=False, paired=False, sig_compare_lines: dict = None, fig=None, ax=None,
                          **kwargs):
     """
+    Mean +/- SEM.
     all purpose function for plotting a bar graph of multiple categories with the option of individual datapoints shown
     as well. The individual datapoints are drawn by adding a scatter plot with the datapoints randomly jittered around the central
     x location of the bar graph. The individual points can also be paired in which case they will be centered. The bar can also be turned off.
@@ -130,12 +132,12 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     if len(colors) != len(xrange_ls):
         colors = colors * len(xrange_ls)
 
-    # initialize plot
-    if 'fig' in kwargs:
-        f = kwargs['fig']
-        ax = kwargs['ax']
-    else:
-        f, ax = plt.subplots(figsize=((3 * len(xrange_ls) / 3), 4), dpi=300)
+    # # initialize plot
+    # if 'fig' in kwargs:
+    #     f = kwargs['fig']
+    #     ax = kwargs['ax']
+    # else:
+    #     f, ax = plt.subplots(figsize=((3 * len(xrange_ls) / 3), 4), dpi=300)
 
     if paired:
         assert len(xrange_ls) > 1
@@ -147,18 +149,17 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
 
     # start making plot
     if not bar:
+        lw = 1 if 'lw' not in kwargs else kwargs['lw']
         for idx, x_val in enumerate(xrange_ls):
             ## plot the mean line
             ax.plot(np.linspace(x_val * w * 2.3 - w / 2, x_val * w * 2.3 + w / 2, 3), [np.mean(y[idx])] * 3,
-                    color='black', zorder=0)
-        lw = 1 if 'lw' not in kwargs else kwargs['lw']
+                    color='black', zorder=0, lw=lw)
         capsize = 1 if 'capsize' not in kwargs else kwargs['capsize']
         edgecolor = None
         # since no bar being shown on plot (lw = 0 from above) then use it to plot the error bars
         ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T,
-                    ecolor='black',
-                    capsize=capsize * 4, zorder=0, elinewidth=lw, markeredgewidth=lw)
+                    ecolor='black', capsize=capsize * 4, zorder=2, elinewidth=lw, markeredgewidth=lw)
 
         # ax.bar([x * w * 2.3 for x in xrange_ls],
         #        height=[np.mean(yi) for yi in y],
@@ -173,26 +174,26 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
         points_lw = 0 if alpha < 1 else 1
     else:
         lw = 1 if 'lw' not in kwargs else kwargs['lw']
+        points_lw = 1
         edgecolor = 'black' if 'edgecolor' not in kwargs else kwargs['edgecolor']
         # plot bar graph
         ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T, ecolor='black',
-                    capsize=5, zorder=15, elinewidth=lw*1.3, markeredgewidth=lw*1.3, alpha=bar_alpha)
+                    capsize=capsize, zorder=15, elinewidth=lw*1.3, markeredgewidth=lw*1.3, alpha=bar_alpha)
         ax.bar([x * w * 2.3 for x in xrange_ls],
                height=[np.mean(yi) for yi in y],
                # yerr=np.asarray([np.asarray([0, np.std(yi, ddof=1)]) for yi in y]).T,  # error bars
                capsize=4.5,  # error bar cap width in points
                width=1.9,  # bar width
-               linewidth=lw*1.5,  # width of the bar edges
+               linewidth=lw*1.5,  # line thickness of the bar edges
                edgecolor=edgecolor,
                # color=(0, 0, 0, 0),  # facecolor transparent
                color=colors,  # facecolor transparent
                alpha = bar_alpha,
                zorder=0
                )
-        points_lw = 1
-    # else:
-    #     AttributeError('something wrong happened with the bar bool parameter...')
+        if ax.get_ylim()[0] < 0 and ax.get_ylim()[1] > 0:
+            ax.axhline(0, color='black', lw=1, zorder=0)
 
     ax.set_xticks([x * w * 2.3 for x in xrange_ls])
     # x_tick_labels = [round(x * w * 2.3, 2) for x in xrange_ls]  # use for debugging placement of plotted data
@@ -241,7 +242,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
                 # distribute scatter randomly across whole width of bar
                 ax.scatter(xrange_ls[i] * w * 2.3 + np.random.random(len(y[i])) * w * 1.4 - w / 1.4, y[i],
                            facecolor=colors[i], edgecolor='black', lw=points_lw,
-                           alpha=alpha, label=legend_labels[i], zorder=9, s=s)
+                           alpha=alpha, label=legend_labels[i], zorder=0, s=s)
 
         else:  # connect lines to the paired scatter points in the list
             if len(xrange_ls) > 0:
@@ -278,8 +279,6 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     ax.set_yticks([float(x) for x in y_ticklabels_]) if len(y_ticklabels_) > 0 else None
     ax.set_yticklabels([str(x) for x in y_ticklabels_]) if len(y_ticklabels_) > 0 else None
 
-
-
     ax.set_xlabel(x_label, fontsize=fontsize)
     ax.set_ylabel(y_label, fontsize=fontsize)
     if savepath:
@@ -303,25 +302,27 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
         if show_legend:
             ax.legend(bbox_to_anchor=(1.01, 0.90), fontsize=fontsize)
 
-    # add title
-    if 'fig' not in kwargs.keys():
-        ax.set_title(title, horizontalalignment='center', pad=title_pad,
-                     fontsize=fontsize, wrap=True)
-    else:
-        ax.set_title((title), horizontalalignment='center', pad=title_pad,
-                     fontsize=fontsize, wrap=True)
+    if title: ax.set_title(title, fontsize=fontsize)
 
-    if 'show' in kwargs.keys():
-        if kwargs['show'] is True:
-            # Tweak spacing to prevent clipping of ylabel
-            f.tight_layout(pad=1.4)
-            f.show()
-        else:
-            return f, ax
-    else:
-        # Tweak spacing to prevent clipping of ylabel
-        f.tight_layout(pad=1.4)
-        f.show()
+    # # add title
+    # if 'fig' not in kwargs.keys():
+    #     ax.set_title(title, horizontalalignment='center', pad=title_pad,
+    #                  fontsize=fontsize, wrap=True)
+    # else:
+    #     ax.set_title((title), horizontalalignment='center', pad=title_pad,
+    #                  fontsize=fontsize, wrap=True)
+    #
+    # if 'show' in kwargs.keys():
+    #     if kwargs['show'] is True:
+    #         # Tweak spacing to prevent clipping of ylabel
+    #         f.tight_layout(pad=1.4)
+    #         f.show()
+    #     else:
+    #         return f, ax
+    # else:
+    #     # Tweak spacing to prevent clipping of ylabel
+    #     f.tight_layout(pad=1.4)
+    #     f.show()
 
 
 @plot_piping_decorator(verbose=False)
@@ -883,3 +884,19 @@ def plot_single_tiff(tiff_path: str, title: str = None, frame_num: int = 0):
         plt.suptitle('frame num: %s' % frame_num)
     plt.show()
     return stack
+
+# plot an image numpy array in grayscale
+@plot_piping_decorator(figsize=(5, 5), verbose=False)
+def plotImg(img: np.ndarray, **kwargs):
+    """Plot image in grayscale.
+
+    :param img: input image to show
+    :param kwargs:
+        :trialobj: ImagingTrial or SingleImage; object associated with input image.
+        :scalebar_um: int; size of scalebar to plot on image (in um); must provide trialobj parameter.
+    """
+    assert img.ndim == 2, 'img to plot must only have 2 dimensions.'
+    fig, ax = kwargs['fig'], kwargs['ax']
+    ax.imshow(img, cmap='gray')
+
+

@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import seaborn as sns
 import random
+
+from skimage.io import imread
 from sklearn.decomposition import PCA
 import tifffile as tf
 import math
@@ -142,7 +144,7 @@ def findClosest(arr, input):
 
 
 # flatten list of lists
-def flattenOnce(list: Union[list, tuple], asarray=False):
+def flattenOnce(list: Union[list, tuple, np.ndarray], asarray=False):
     """ flattens a nested list by one nesting level (should be able to run multiple times to get further down if needed for
      deeper nested lists) """
     # if not asarray:
@@ -154,7 +156,13 @@ def flattenOnce(list: Union[list, tuple], asarray=False):
     #     return [l_.extend() for i in list]
     # elif asarray:
     #     return np.asarray([x for i in list for x in i])
-    return [x for i in list for x in i]
+    if not type(list):
+        raise TypeError('input must be a list or tuple')
+    if not asarray:
+        return [x for i in list for x in i]
+    elif asarray:
+        return np.asarray([x for i in list for x in i])
+
 
 
 # save .pkl files from the specified pkl_path
@@ -175,6 +183,92 @@ def load_pkl(pkl_path: str):
         return f
     else:
         raise FileNotFoundError(f"{pkl_path} not found")
+
+
+def ImportTiff(tiff_path, frames: Union[tuple, int] = None) -> np.ndarray:
+    """
+    Import multi-frame tiff file from provided `tiff_path`, between specified frames (if provided, optional).
+
+    :param tiff_path: path to multi-frame tiff file to load
+    :param frames: optional, load frames between frames specified, or load single frame if int provided.
+    :return: stack of tiff images
+    """
+    if frames and type(frames) == tuple:
+        im_stack = tf.imread(tiff_path, key=range(frames[0], frames[1]))
+    elif frames and type(frames) == int:
+        im_stack = tf.imread(tiff_path, key=frames)
+    else:
+        # import cv2
+        # ret, images = cv2.imreadmulti(tiff_path, [], cv2.IMREAD_ANYCOLOR)
+        # if len(images) > 0:
+        #     im_stack = np.asarray(images)
+        # im_stack = tf.imread(tiff_path)
+        try:
+            stack = []
+            with tf.TiffFile(tiff_path) as tif:
+                for page in tif.pages:
+                    image = page.asarray()
+                    stack.append(image)
+            im_stack = np.array(stack)
+            if len(im_stack) == 1: im_stack = im_stack[0]
+        except Exception as ex:
+            try:
+                im_stack = imread(tiff_path, plugin='pil')
+            except Exception as ex:
+                raise ImportError('unknown error in loading tiff stack.')
+
+    return im_stack
+
+def makeFrameAverageTiff(frames: Union[int, list, tuple], tiff_path: str = None, stack: np.ndarray = None,
+                         peri_frames: int = 100, save_dir: str = None, to_plot=False, **kwargs) -> np.ndarray:
+    """Creates, plots and/or saves an average image of the specified number of peri-key_frames around the given frame from either the provided tiff_path or the stack array.
+
+    :param frames: key frames to create peri-average frames.
+    :param tiff_path: path to tiff file for collecting images.
+    :param stack: image stack array to use for collecting peri-average images
+    :param peri_frames: number of frames to collect pre- and post- from key frame
+    :param save_dir: directory to save tiff images to
+    :param to_plot: if true, show peri-frame average image
+    :param kwargs: see kwargs under imagingplus.plotting.plotting.plotImg
+    :return: peri-frame averaged array images
+    """
+
+    if type(frames) == int:
+        frames = [frames]
+
+    stack = ImportTiff(tiff_path) if not stack else stack
+
+    imgs = []
+    for idx, frame in enumerate(frames):
+        # im_batch_reg = tf.imread(tif_path, key=range(0, self.output_ops['batch_size']))
+
+        if 0 > frame - peri_frames // 2:
+            peri_frames_low = frame
+        else:
+            peri_frames_low = peri_frames // 2
+        if stack.shape[0] < frame + peri_frames // 2:
+            peri_frames_high = stack.shape[0] - frame
+        else:
+            peri_frames_high = peri_frames // 2
+        im_sub_reg = stack[frame - peri_frames_low: frame + peri_frames_high]
+
+        avg_sub = np.mean(im_sub_reg, axis=0)
+
+        # convert to 8-bit
+        avg_sub = convert_to_8bit(avg_sub, 0, 255)
+
+        if save_dir:
+            if '.tif' in save_dir: save_dir = os.path.dirname(save_dir) + '/'
+            save_path = save_dir + f'/{frames[idx]}_s2preg_frame_avg.tif'
+            os.makedirs(save_dir, exist_ok=True)
+
+            print(f"\t\- Saving averaged s2p registered tiff for frame: {frames[idx]}, to: {save_path}")
+            tf.imwrite(save_path, avg_sub, photometric='minisblack')
+
+        imgs.append(avg_sub)
+
+    return np.asarray(imgs)
+
 
 
 ############### STATS/DATA ANALYSIS FUNCTIONS ##########################################################################
@@ -269,15 +363,118 @@ def load_matlab_array(path):
 
 
 # read csv
-def read_csv(csvpath):
-    with open(csvpath) as csv_file:
-        csv_file = csv.DictReader(csv_file, fieldnames=None, dialect='excel')
+def read_csv(csvpath, as_pandas = True, sep=None):
+    """
+    Import a csv file. Optinally return as pandas dataframe.
+    :param csvpath: path to the .csv file to import.
+    :param as_pandas:
+    :param sep: separator to use when reading in to a pandas dataframe.
+    :return:
+    """
+    if as_pandas:
+        csv_file = pd.read_csv(csvpath, sep=sep)
+    else:
+        with open(csvpath) as csv_file:
+            csv_file = csv.DictReader(csv_file, fieldnames=None, dialect='excel')
     return csv_file
 
 
 # find percentile of a value within an array
 def find_percentile(d, threshold):
     return sum(np.abs(d) < threshold) / float(len(d)) * 100
+
+# calc z score, given std and mean
+def zscore(dat: float, std: float, mean: float):
+    """Calc z score for an input score, given std and mean of the overall distribution.
+    :param score: score to conver to z score
+    :param std:
+    :param mean:
+    :return:
+    """
+    return (dat - mean) / std
+
+
+def convert_to_positive(arr):
+    min_value = min(arr)
+    if min_value >= 0:
+        return arr
+    else:
+        return np.array([x + abs(min_value) for x in arr])
+
+
+def decay_constant(arr: np.ndarray, threshold: float = None, signal_rate: Union[float, int] = 1):
+    """measure the timeconstant of decay of a signal array.
+    If signal rate is provided, will return in units of time, otherwise will return as the index of the array.
+    """
+    if not type(arr) is np.ndarray:
+        raise TypeError('provide `arr` input as type = np.array')
+    max_value = arr.max()  # peak Flu value after stim
+    max_index = arr.argmax()  # peak Flu value after stim
+    threshold = (1 - np.exp(-1)) * max_value if not threshold else threshold  # set threshold to be at 1/e x peak
+    try:
+        x_ = np.where(arr[max_index:] < threshold)[0][0]  # find index AFTER the index of the max value of the trace, where the trace decays to the threshold value
+        return x_ / signal_rate  # convert frame # to time
+    except Exception:
+        print(f'Could not find decay below the maximum value of the trace provided. max: {max_value}, max index: {max_index}, decay threshold: {threshold}')
+
+
+def decay_constant_logfit_method(arr):
+    """use the polyfit on the logarithm of the signal to calculate the decay coefficient
+
+    >>> r = 0.5
+    >>> a = 10
+    >>> n = 10
+    >>> arr = np.array([a*np.exp((-r)*i) for i in range(n)])
+    >>> decay_constant = decay_constant_logfit_method(arr=arr)
+    """
+    coeffs = np.polyfit(range(len(arr)), np.log(arr), 1)
+    decay_constant = -coeffs[0]
+    return decay_constant
+
+
+def decay_timescale(arr, decay_constant=None, signal_rate=1):
+    """
+    Calculation of the decay timescale (optionally adjusting for signal collection data rate).
+    Decay timescale is defined as (1 - 1/e) * initial [max] value of the signal.
+
+    :param arr:
+    :param decay_constant:
+    :param signal_rate:
+    :return:
+
+    >>> r = 0.5
+    >>> a = 10
+    >>> n = 10
+    >>> arr = np.array([a*np.exp((-r)*i) for i in range(n)])
+    >>> decay_constant = decay_constant_logfit_method(arr=arr)
+    >>> decay_timescale(arr=arr, decay_constant=decay_constant, signal_rate=30)
+    """
+
+    max_value = np.max(arr)
+
+    if decay_constant is None:
+        decay_constant = decay_constant_logfit_method(arr=arr)
+
+    timescale = -(1 / decay_constant) * np.log(1 - 1 / np.e)
+    half_life = -(1 / decay_constant) * np.log(0.5)
+
+    plot = False
+    if plot:
+        time_steps = np.arange(0, len(arr))
+        decay = max_value * np.exp(-decay_constant * time_steps)
+        plt.plot(decay)
+        plt.axhline(arr.max() * 0.5)
+        plt.axvline(half_life)
+        plt.suptitle('half life')
+        plt.show()
+
+        plt.plot(decay)
+        plt.axhline(arr.max() * (1 - 1 / np.e))
+        plt.axvline(timescale)
+        plt.suptitle('timescale value')
+        plt.show()
+
+    return timescale / signal_rate
 
 
 # random func for rotating images and calculating the image intensity along one axis of the image
@@ -1457,7 +1654,7 @@ def dataplot_frame_options():
     sns.set_style('white')
 
 
-def lineplot_frame_options(fig, ax, x_label='', y_label=''):
+def lineplot_frame_options(fig, ax, x_label='', y_label='', fs=10):
 
     sns.set()
     sns.set_style('white')
@@ -1466,8 +1663,8 @@ def lineplot_frame_options(fig, ax, x_label='', y_label=''):
     ax.spines['right'].set_visible(False)
     # ax.spines['left'].set_visible(True)
     ax.margins(0)
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label, fontsize=fs)
+    ax.set_ylabel(y_label, fontsize=fs)
 
 
 

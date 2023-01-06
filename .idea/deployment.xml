@@ -5,7 +5,7 @@
       <paths name="pshah@packerserver1.dpag.ox.ac.uk:22 agent">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/pshah/Documents/code/funcsforprajay" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/Documents/code/funcsforprajay" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

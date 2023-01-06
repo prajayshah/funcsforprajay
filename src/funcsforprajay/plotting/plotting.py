@@ -85,12 +85,12 @@ def make_random_color_array(n_colors):
 
 
 # plotting function for plotting a bar graph with the individual data points shown as well
-@plot_piping_decorator(verbose=False)
+@plot_piping_decorator(verbose=False, figsize=(3, 3))
 def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list = [], points: bool = True,
                          bar: bool = True, colors: list = ['black'], ylims=None, xlims=True, text_list=None,
                          x_label=None, y_label=None, alpha=0.2, savepath=None, fontsize: int = 8, capsize=5,
                          show_legend=False, paired=False, sig_compare_lines: dict = None, fig=None, ax=None,
-                         **kwargs):
+                         lw=1, points_lw=0.5, **kwargs):
     """
     Mean +/- SEM.
     all purpose function for plotting a bar graph of multiple categories with the option of individual datapoints shown
@@ -111,6 +111,8 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     :param text_list: list of text to add to each category of data on the plot
     :param text_shift: float; number between 0.5 to 1 used to adjust precise positioning of the text in text_list
     :param alpha: transparency of the individual points when plotted in the scatter
+    :param lw: linewidth of bar edges and errorbars
+    :param points_lw: linewidth of edges of points
     :param savepath: .svg file path; if given, the plot will be saved to the provided file path
     :param expand_size_x: factor to use for expanding figure size
     :param expand_size_y: factor to use for expanding figure size
@@ -132,13 +134,6 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     if len(colors) != len(xrange_ls):
         colors = colors * len(xrange_ls)
 
-    # # initialize plot
-    # if 'fig' in kwargs:
-    #     f = kwargs['fig']
-    #     ax = kwargs['ax']
-    # else:
-    #     f, ax = plt.subplots(figsize=((3 * len(xrange_ls) / 3), 4), dpi=300)
-
     if paired:
         assert len(xrange_ls) > 1
         points_lw = 0 if alpha < 1 else 1
@@ -148,38 +143,12 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     bar_alpha = kwargs['bar_alpha'] if 'bar_alpha' in kwargs else bar_alpha
 
     # start making plot
-    if not bar:
-        lw = 1 if 'lw' not in kwargs else kwargs['lw']
-        for idx, x_val in enumerate(xrange_ls):
-            ## plot the mean line
-            ax.plot(np.linspace(x_val * w * 2.3 - w / 2, x_val * w * 2.3 + w / 2, 3), [np.mean(y[idx])] * 3,
-                    color='black', zorder=0, lw=lw)
-        capsize = 1 if 'capsize' not in kwargs else kwargs['capsize']
-        edgecolor = None
-        # since no bar being shown on plot (lw = 0 from above) then use it to plot the error bars
-        ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
-                    yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T,
-                    ecolor='black', capsize=capsize * 4, zorder=2, elinewidth=lw, markeredgewidth=lw)
-
-        # ax.bar([x * w * 2.3 for x in xrange_ls],
-        #        height=[np.mean(yi) for yi in y],
-        #        yerr=[np.std(yi, ddof=1) for yi in y],  # error bars
-        #        capsize=4.5,  # error bar cap width in points
-        #        width=w,  # bar width
-        #        linewidth=0,  # width of the bar edges
-        #        edgecolor=edgecolor,
-        #        color=(0, 0, 0, 0),  # face edgecolor transparent
-        #        zorder=5
-        #        )
-        points_lw = 0 if alpha < 1 else 1
-    else:
-        lw = 1 if 'lw' not in kwargs else kwargs['lw']
-        points_lw = 1
+    if bar:
         edgecolor = 'black' if 'edgecolor' not in kwargs else kwargs['edgecolor']
         # plot bar graph
         ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T, ecolor='black',
-                    capsize=capsize, zorder=15, elinewidth=lw*1.3, markeredgewidth=lw*1.3, alpha=bar_alpha)
+                    capsize=capsize, zorder=0, elinewidth=lw*1.3, markeredgewidth=lw*1.3, alpha=bar_alpha)
         ax.bar([x * w * 2.3 for x in xrange_ls],
                height=[np.mean(yi) for yi in y],
                # yerr=np.asarray([np.asarray([0, np.std(yi, ddof=1)]) for yi in y]).T,  # error bars
@@ -189,11 +158,21 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
                edgecolor=edgecolor,
                # color=(0, 0, 0, 0),  # facecolor transparent
                color=colors,  # facecolor transparent
-               alpha = bar_alpha,
-               zorder=0
-               )
+               alpha=bar_alpha,
+               zorder=0)
         if ax.get_ylim()[0] < 0 and ax.get_ylim()[1] > 0:
             ax.axhline(0, color='black', lw=1, zorder=0)
+
+    else:
+        for idx, x_val in enumerate(xrange_ls):
+            ## plot the mean line
+            ax.plot(np.linspace(x_val * w * 2.3 - w / 2, x_val * w * 2.3 + w / 2, 3), [np.mean(y[idx])] * 3, color='black', zorder=10, lw=lw)
+        capsize = 1 if 'capsize' not in kwargs else kwargs['capsize']
+        # since no bar being shown on plot (lw = 0 from above) then use it to plot the error bars
+        ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
+                    yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T,
+                    ecolor='black', capsize=capsize * 4, zorder=10, elinewidth=lw, markeredgewidth=lw)
+        points_lw = 0 if alpha < 1 else points_lw
 
     ax.set_xticks([x * w * 2.3 for x in xrange_ls])
     # x_tick_labels = [round(x * w * 2.3, 2) for x in xrange_ls]  # use for debugging placement of plotted data
@@ -242,7 +221,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
                 # distribute scatter randomly across whole width of bar
                 ax.scatter(xrange_ls[i] * w * 2.3 + np.random.random(len(y[i])) * w * 1.4 - w / 1.4, y[i],
                            facecolor=colors[i], edgecolor='black', lw=points_lw,
-                           alpha=alpha, label=legend_labels[i], zorder=0, s=s)
+                           alpha=alpha, label=legend_labels[i], zorder=2, s=s)
 
         else:  # connect lines to the paired scatter points in the list
             if len(xrange_ls) > 0:
@@ -304,25 +283,6 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
 
     if title: ax.set_title(title, fontsize=fontsize)
 
-    # # add title
-    # if 'fig' not in kwargs.keys():
-    #     ax.set_title(title, horizontalalignment='center', pad=title_pad,
-    #                  fontsize=fontsize, wrap=True)
-    # else:
-    #     ax.set_title((title), horizontalalignment='center', pad=title_pad,
-    #                  fontsize=fontsize, wrap=True)
-    #
-    # if 'show' in kwargs.keys():
-    #     if kwargs['show'] is True:
-    #         # Tweak spacing to prevent clipping of ylabel
-    #         f.tight_layout(pad=1.4)
-    #         f.show()
-    #     else:
-    #         return f, ax
-    # else:
-    #     # Tweak spacing to prevent clipping of ylabel
-    #     f.tight_layout(pad=1.4)
-    #     f.show()
 
 
 @plot_piping_decorator(verbose=False)
@@ -899,4 +859,9 @@ def plotImg(img: np.ndarray, **kwargs):
     fig, ax = kwargs['fig'], kwargs['ax']
     ax.imshow(img, cmap='gray')
 
+if __name__ == '__main__':
+    data = [np.random.random(20) for i in range(3)]
+    plot_bar_with_points(data=data, bar=False, x_tick_labels=['baseline', 'interictal', 'ictal'],
+            colors=['blue', 'green', 'purple'], lw=1, alpha=1, shrink_text=1, points=True,
+            title='Average s2p ROIs spk rate', y_label='spikes rate (Hz)', figsize=(2, 2))
 

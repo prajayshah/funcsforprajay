@@ -21,7 +21,7 @@ def print_start_end_plot(plotting_func):
 
 
 # works
-def plot_piping_decorator(figsize=(5,5), nrows=1, ncols=1, verbose=True):
+def plot_piping_decorator(figsize=(5, 5), nrows=1, ncols=1, verbose=True):
     def plot_piping_decorator_(plotting_func):
         """
         Wrapper to help simplify creating plots from matplotlib.pyplot

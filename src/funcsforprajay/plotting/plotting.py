@@ -146,9 +146,9 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     if bar:
         edgecolor = 'black' if 'edgecolor' not in kwargs else kwargs['edgecolor']
         # plot bar graph
-        ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
+        ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none', zorder=10,
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T, ecolor='black',
-                    capsize=capsize, zorder=0, elinewidth=lw*1.3, markeredgewidth=lw*1.3, alpha=bar_alpha)
+                    capsize=capsize, elinewidth=lw*1.3, markeredgewidth=lw*1.3, alpha=bar_alpha)
         ax.bar([x * w * 2.3 for x in xrange_ls],
                height=[np.mean(yi) for yi in y],
                # yerr=np.asarray([np.asarray([0, np.std(yi, ddof=1)]) for yi in y]).T,  # error bars

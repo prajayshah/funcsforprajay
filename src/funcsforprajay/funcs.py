@@ -291,6 +291,10 @@ def eq_line_2points(p1, p2):
 
 
 def moving_average(a, n=4):
+	"""
+	a: array to process
+	n: window over which to collect moving average
+	"""
     ret = np.cumsum(a)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n

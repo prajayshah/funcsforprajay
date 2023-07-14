@@ -23,6 +23,12 @@ from funcsforprajay.wrappers import plot_piping_decorator
 
 
 ############### GENERALLY USEFUL FUNCTIONS #############################################################################
+
+# retrieve the last modified time for a file path
+def get_last_modified_time(file_path: str):
+    return os.path.getmtime(file_path)
+
+
 # return the parent directory of a file:
 def return_parent_dir(file_path: str):
     return file_path[:[(s.start(), s.end()) for s in re.finditer('/', file_path)][-1][0]]
@@ -291,10 +297,10 @@ def eq_line_2points(p1, p2):
 
 
 def moving_average(a, n=4):
-	"""
-	a: array to process
-	n: window over which to collect moving average
-	"""
+    """
+    a: array to process
+    n: window over which to collect moving average
+    """
     ret = np.cumsum(a)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n

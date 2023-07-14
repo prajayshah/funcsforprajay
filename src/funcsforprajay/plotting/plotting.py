@@ -117,6 +117,8 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     :param expand_size_x: factor to use for expanding figure size
     :param expand_size_y: factor to use for expanding figure size
     :param paired: bool, if True then draw lines between data points of the same index location in each respective list in the data
+    **kwargs:
+        :param fontsize: fontsize of text in plot
     :return: matplotlib plot
     """
 

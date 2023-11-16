@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-import tifffile as tf
 from scipy import stats
 
 from funcsforprajay.funcs import flattenOnce
@@ -97,6 +96,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     as well. The individual datapoints are drawn by adding a scatter plot with the datapoints randomly jittered around the central
     x location of the bar graph. The individual points can also be paired in which case they will be centered. The bar can also be turned off.
 
+    :param sig_compare_lines: e.g. of line between 0th and 1st data point with '*' --> {'*': [0,1]}
     :param data: list; provide data from each category as a list and then group all into one list
     :param title: str; title of the graph
     :param x_tick_labels: labels to use for categories on x axis
@@ -178,7 +178,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
 
     ax.set_xticks([x * w * 2.3 for x in xrange_ls])
     # x_tick_labels = [round(x * w * 2.3, 2) for x in xrange_ls]  # use for debugging placement of plotted data
-    x_tick_labels = ax.get_xticks() if x_tick_labels is None else x_tick_labels
+    x_tick_labels = (ax.get_xticks() if legend_labels is None else legend_labels) if x_tick_labels is None else x_tick_labels
     assert len(xrange_ls) == len(x_tick_labels), f'not enough x_tick_labels provided. {x_tick_labels}, need {len(xrange_ls)}'
     if len(xrange_ls) > 1:
         ax.set_xticklabels(x_tick_labels, fontsize=fontsize, rotation=45)
@@ -202,9 +202,9 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
             ax.plot([groups[sig_compare_line[1]]] * 2, [np.max(data[sig_compare_line[1]]) + gap, np.max(
                 flattenOnce([data[sig_compare_line[0]], data[sig_compare_line[1]]])) * 1.5], color='black', lw=lw)
 
-            xy = (np.mean([groups[sig_compare_line[0]], groups[sig_compare_line[1]]]), top_line[0] + top_line[0] * 0.1)
+            xy = (np.mean([groups[sig_compare_line[0]], groups[sig_compare_line[1]]]), top_line[0] + 0.25 / fig.dpi)
 
-            ax.text(x=xy[0], y=xy[1], s=i, fontsize=fontsize)
+            ax.text(x=xy[0], y=xy[1], s=i, fontsize=fontsize*1.5, ha='center')
 
     if xlims:
         ax.set_xlim([(xrange_ls[0] * w * 2) - w * 1.20, (xrange_ls[-1] * w * 2.4) + w * 1.20])
@@ -838,6 +838,7 @@ def plot_single_tiff(tiff_path: str, title: str = None, frame_num: int = 0):
     :param title: give a string to use as title (optional)
     :return: imshow plot
     """
+    import tifffile as tf
     stack = tf.imread(tiff_path, key=frame_num)
     plt.imshow(stack, cmap='gray')
     if title is not None:

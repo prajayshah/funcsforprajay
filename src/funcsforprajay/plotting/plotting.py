@@ -87,11 +87,11 @@ def make_random_color_array(n_colors):
 @plot_piping_decorator(verbose=False, figsize=(3, 3))
 def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list = [], points: bool = True,
                          bar: bool = True, colors: list = ['black'], ylims=None, xlims=True, text_list=None,
-                         x_label=None, y_label=None, alpha=0.2, savepath=None, fontsize: int = 8, capsize=5,
+                         x_label=None, y_label=None, alpha=0.2, savepath=None, fontsize: int = 8,
                          show_legend=False, paired=False, sig_compare_lines: dict = None, fig=None, ax=None,
                          lw=1, points_lw=0.5, **kwargs):
     """
-    Mean +/- SEM.
+    Plots Mean +/- SEM of each data group that is provided.
     all purpose function for plotting a bar graph of multiple categories with the option of individual datapoints shown
     as well. The individual datapoints are drawn by adding a scatter plot with the datapoints randomly jittered around the central
     x location of the bar graph. The individual points can also be paired in which case they will be centered. The bar can also be turned off.
@@ -119,6 +119,9 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     :param paired: bool, if True then draw lines between data points of the same index location in each respective list in the data
     **kwargs:
         :param fontsize: fontsize of text in plot
+        :param y_labelpad: labelpad of the y-axis label
+        :param x_labelpad: labelpad of the x-axis label
+        :param capsize: size of the errorbar cap
     :return: matplotlib plot
     """
 
@@ -127,6 +130,9 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
             ylims = kwargs[key]
         if 'x' in key and 'lim' in key:
             xlims = kwargs[key]
+        if 'fs' == key:
+            fontsize = kwargs[key]
+
 
     # collect some info about data to plot
     w = 1.0  # mean bar width
@@ -136,17 +142,15 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     if len(colors) != len(xrange_ls):
         colors = colors * len(xrange_ls)
 
-    if paired:
-        assert len(xrange_ls) > 1
-        points_lw = 0 if alpha < 1 else 1
     s = 10 if 's' not in kwargs else kwargs['s']
 
     bar_alpha = 1 if not points else 0.4
     bar_alpha = kwargs['bar_alpha'] if 'bar_alpha' in kwargs else bar_alpha
 
-    # start making plot
+    ### ADD BAR AND ERROR BARS TO THE PLOT
     if bar:
         edgecolor = 'black' if 'edgecolor' not in kwargs else kwargs['edgecolor']
+        capsize = 5 if 'capsize' not in kwargs else kwargs['capsize']
         # plot bar graph
         ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none', zorder=10,
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T, ecolor='black',
@@ -173,7 +177,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
         # since no bar being shown on plot (lw = 0 from above) then use it to plot the error bars
         ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T,
-                    ecolor='black', capsize=capsize * 4, zorder=10, elinewidth=lw, markeredgewidth=lw)
+                    ecolor='black', capsize=capsize, zorder=10, elinewidth=lw, markeredgewidth=lw)
         points_lw = 0 if alpha < 1 else points_lw
 
     ax.set_xticks([x * w * 2.3 for x in xrange_ls])
@@ -217,7 +221,9 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
             x_tick_labels = [None] * len(xrange_ls)
         legend_labels = x_tick_labels
 
+    ### PLOT DATA POINTS
     if points:
+        # points_lw = 0 if alpha < 1 else points_lw
         if not paired:
             for i, _ in enumerate(xrange_ls):
                 # distribute scatter randomly across whole width of bar
@@ -226,6 +232,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
                            alpha=alpha, label=legend_labels[i], zorder=2, s=s)
 
         else:  # connect lines to the paired scatter points in the list
+            assert len(xrange_ls) > 1
             if len(xrange_ls) > 0:
                 for i, _ in enumerate(xrange_ls):
                     # plot points  # dont scatter location of points if plotting paired lines
@@ -234,7 +241,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
                 for i, _ in enumerate(xrange_ls[:-1]):
                     for point_idx in range(len(y[i])):  # draw the lines connecting pairs of data
                         ax.plot([xrange_ls[i] * w * 2.3 + 0.058, xrange_ls[i + 1] * w * 2.3 - 0.048],
-                                [y[i][point_idx], y[i + 1][point_idx]], color='black', zorder=1, alpha=0.5)
+                                [y[i][point_idx], y[i + 1][point_idx]], color='black', zorder=1, alpha=0.3)
 
             else:
                 AttributeError('cannot do paired scatter plotting with only one data category')
@@ -260,10 +267,9 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
     ax.set_yticks([float(x) for x in y_ticklabels_]) if len(y_ticklabels_) > 0 else None
     ax.set_yticklabels([str(x) for x in y_ticklabels_]) if len(y_ticklabels_) > 0 else None
 
-    ax.set_xlabel(x_label, fontsize=fontsize)
-    ax.set_ylabel(y_label, fontsize=fontsize)
-    if savepath:
-        plt.savefig(savepath)
+    ### set axis labels:
+    ax.set_xlabel(x_label, fontsize=fontsize, labelpad=kwargs['x_labelpad']) if 'x_labelpad' in kwargs else ax.set_xlabel(x_label, fontsize=fontsize, labelpad=4.0)
+    ax.set_ylabel(y_label, fontsize=fontsize, labelpad=kwargs['y_labelpad']) if 'y_labelpad' in kwargs else ax.set_ylabel(y_label, fontsize=fontsize, labelpad=4.0)  # note matplotlib default labelpad is 4.0
 
     # add text to the figure if given:
     if text_list:
@@ -284,6 +290,10 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
             ax.legend(bbox_to_anchor=(1.01, 0.90), fontsize=fontsize)
 
     if title: ax.set_title(title, fontsize=fontsize)
+
+    if savepath:
+        plt.savefig(savepath)
+
 
 
 

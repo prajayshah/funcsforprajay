@@ -13,7 +13,7 @@ def print_start_end_plot(plotting_func):
     def inner(*args, **kwargs):
         print(f"\nplotting function {'.' * 20} \ \n", end='\r')
         res = plotting_func(*args, **kwargs)
-        print(f"\- return elements during print_start_end_plot: {res}")
+        print(f".. return elements during print_start_end_plot: {res}")
         # print(f"\n {'.' * 5} plotting function \ end \n ** res during print_start_end_plot {res}")
         print(f"{'.' * 34} \ END \n", end='\r')
         return res
@@ -72,16 +72,16 @@ def plot_piping_decorator(figsize=(5, 5), nrows=1, ncols=1, verbose=True):
             # create or retrieve the fig, ax objects --> end up in kwargs to use into the plotting func call below
             if 'fig' in kwargs and 'ax' in kwargs:
                 if kwargs['fig'] is None or kwargs['ax'] is None:
-                    # print('\-creating fig, ax [1]')
+                    # print('..creating fig, ax [1]')
                     kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_, dpi=300)
             else:
-                # print('\-creating fig, ax [2]')
+                # print('..creating fig, ax [2]')
                 kwargs['fig'], kwargs['ax'] = plt.subplots(nrows=__nrows, ncols=__ncols, figsize=figsize_, dpi=300)
                 kwargs['fig'].tight_layout(pad=1.8)
 
             # print(f"\nnew kwargs {kwargs}")
 
-            print(f'\- executing plotting_func...', end='\r') if verbose else None
+            print(f'.. executing plotting_func...', end='\r') if verbose else None
             res = plotting_func(*args, **kwargs)  # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
             # print(f'\nreturn fig, ax or show figure as called for')
@@ -94,24 +94,24 @@ def plot_piping_decorator(figsize=(5, 5), nrows=1, ncols=1, verbose=True):
 
             if 'show' in kwargs:
                 if kwargs['show'] is True:
-                    # print(f'\- showing fig of size {figsize_}...[3]')
+                    # print(f'.. showing fig of size {figsize_}...[3]')
                     kwargs['fig'].show()
                     # print(f"*res right now: {res}")
                     return res
                 else:
-                    # print(f"\- not showing, but returning fig_obj of size {figsize_}[4]")
+                    # print(f".. not showing, but returning fig_obj of size {figsize_}[4]")
                     if res is not None:
                         return kwargs['fig'], kwargs['ax'], res
                     else:
                         return kwargs['fig'], kwargs['ax']
             else:
-                # print(f'\- showing fig of size {figsize_}...[5]')
+                # print(f'.. showing fig of size {figsize_}...[5]')
                 kwargs['fig'].show()
                 return res
 
 
             # # print(f"|-value of return_fig_obj is {return_fig_obj} [5]")
-            # print(f"\- returning fig_obj [4]") if return_fig_obj else None
+            # print(f".. returning fig_obj [4]") if return_fig_obj else None
             # return (kwargs['fig'], kwargs['ax']) if return_fig_obj else None
 
         return inner

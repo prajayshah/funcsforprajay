@@ -178,7 +178,7 @@ def save_pkl(obj, pkl_path: str):
         os.makedirs(return_parent_dir(pkl_path), exist_ok=True)
         with open(pkl_path, 'wb') as f:
             pickle.dump(obj, f)
-        print(f"\- saved to {pkl_path} -- ")
+        print(f".. saved to {pkl_path} -- ")
     else:
         raise NotADirectoryError(f'parent directory of {pkl_path} cannot be reached.')
 
@@ -269,7 +269,7 @@ def makeFrameAverageTiff(frames: Union[int, list, tuple], tiff_path: str = None,
             save_path = save_dir + f'/{frames[idx]}_s2preg_frame_avg.tif'
             os.makedirs(save_dir, exist_ok=True)
 
-            print(f"\t\- Saving averaged s2p registered tiff for frame: {frames[idx]}, to: {save_path}")
+            print(f"\t.. Saving averaged s2p registered tiff for frame: {frames[idx]}, to: {save_path}")
             tf.imwrite(save_path, avg_sub, photometric='minisblack')
 
         imgs.append(avg_sub)
@@ -865,7 +865,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         axs[ax_counter].axvspan(kwargs['v_span'][0], kwargs['v_span'][1], color='indianred', zorder=1)
 
     if plot_std is False or num_traces == 1:  # only plot individual lines if plot_std is inactive
-        print(f'\- plotting {num_traces} individual traces on {num_axes} axes')
+        print(f'.. plotting {num_traces} individual traces on {num_axes} axes')
         for i in range(num_traces):
             axs[ax_counter].plot(x_range[i], data_arr[i], color=colors[i], alpha=alpha)
             if num_axes > 1:
@@ -878,11 +878,11 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
                 ax_counter += 1
     if num_axes == 1 and twin_x is False and num_traces > 1:
         if plot_avg:
-            print(f'\- plotting average trace of {data_arr.shape[0]} traces on 1 axis')
+            print(f'.. plotting average trace of {data_arr.shape[0]} traces on 1 axis')
             axs[ax_counter].plot(x_range[0], np.mean(data_arr, axis=0), color='black', alpha=1,
                                  zorder=data_arr.shape[0] + 1)
         if plot_std:
-            print(f'\- plotting std trace of {data_arr.shape[0]} traces on 1 axis')
+            print(f'.. plotting std trace of {data_arr.shape[0]} traces on 1 axis')
             std_low = np.mean(data_arr, axis=0) - np.std(data_arr, axis=0)
             std_high = np.mean(data_arr, axis=0) + np.std(data_arr, axis=0)
             axs[ax_counter].fill_between(x_range[0], std_low, std_high, color='gray', alpha=0.5, zorder=0)

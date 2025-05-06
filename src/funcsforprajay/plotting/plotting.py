@@ -173,7 +173,7 @@ def plot_bar_with_points(data, title='', x_tick_labels=None, legend_labels: list
         for idx, x_val in enumerate(xrange_ls):
             ## plot the mean line
             ax.plot(np.linspace(x_val * w * 2.3 - w / 2, x_val * w * 2.3 + w / 2, 3), [np.mean(y[idx])] * 3, color='black', zorder=10, lw=lw)
-        capsize = 1 if 'capsize' not in kwargs else kwargs['capsize']
+        capsize = 5 if 'capsize' not in kwargs else kwargs['capsize']
         # since no bar being shown on plot (lw = 0 from above) then use it to plot the error bars
         ax.errorbar([x * w * 2.3 for x in xrange_ls], [np.mean(yi) for yi in y], fmt='none',
                     yerr=np.asarray([np.asarray([stats.sem(yi, ddof=1), stats.sem(yi, ddof=1)]) for yi in y]).T,
@@ -444,6 +444,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
         fontsize: float, fontsizes within the plot of text labels
         v_span: tuple, vertical span fill - will be same for each axis
         suptitle: str, used for suptitle of fig
+        grid: bool, show major and minor grid lines of the plot
     :return None
     """
 
@@ -494,9 +495,9 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
             x_range = np.asarray(x_range)
         assert x_range.shape == data_arr.shape, '|- AssertionError: mismatch between data to plot and x_range provided for this data'
     else:
-        x_range = np.empty_like(data_arr)
+        x_range = []
         for i in range(num_traces):
-            x_range[i] = range(len(data_arr[i]))
+            x_range.append(range(len(data_arr[i])))
 
     # make random line_colors for plotting
     if 'line_colors' not in kwargs.keys():
@@ -522,11 +523,16 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
     if 'v_span' in kwargs.keys() and type(kwargs['v_span']) is tuple:
         axs[ax_counter].axvspan(kwargs['v_span'][0], kwargs['v_span'][1], color='indianred', zorder=1)
 
+
     if plot_std is False or num_traces == 1:  # only plot individual lines if plot_std is inactive
-        print(f'\- plotting {num_traces} individual traces on {num_axes} axes')
+        print(f'.. plotting {num_traces} individual traces on {num_axes} axes')
         for i in range(num_traces):
-            print(kwargs['ax_titles'][i])
-            print(lw)
+            print(f"\tplotting: {kwargs['ax_titles'][i]}")
+            ### show grid lines
+            if 'grid' in kwargs and kwargs['grid']:
+                axs[ax_counter].grid(visible=True, which='both')
+
+            # make plot
             axs[ax_counter].plot(x_range[i], data_arr[i], color=colors[i], alpha=alpha, linewidth=lw)
             axs[ax_counter].set_title(kwargs['ax_titles'][i], fontsize=fontsize) if 'ax_titles' in [*kwargs] else None
             if not twin_x:
@@ -543,16 +549,21 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
                 axs[i].set_ylabel(kwargs['y_labels'][i], fontsize=fontsize, color=colors[i]) if 'y_labels' in [
                     *kwargs] else None
                 ax_counter += 1
+
     elif num_axes == 1 and twin_x is False and num_traces > 1:
+        ### show grid lines
+        if 'grid' in kwargs and kwargs['grid']:
+            axs[ax_counter].grid(visible=True, which='both')
+
         if plot_avg:
-            print(f'\- plotting average trace of {data_arr.shape[0]} traces on 1 axis')
+            print(f'.. plotting average trace of {data_arr.shape[0]} traces on 1 axis')
             axs[ax_counter].plot(x_range[0], np.mean(data_arr, axis=0), color='black', alpha=1,
                                  zorder=data_arr.shape[0] + 1, lw=lw)
             axs[ax_counter].set_title(kwargs['ax_titles'][ax_counter], fontsize=fontsize) if 'ax_titles' in [
                 *kwargs] else None
 
         if plot_std:
-            print(f'\- plotting std trace of {data_arr.shape[0]} traces on 1 axis')
+            print(f'.. plotting std trace of {data_arr.shape[0]} traces on 1 axis')
             std_low = np.mean(data_arr, axis=0) - np.std(data_arr, axis=0)
             std_high = np.mean(data_arr, axis=0) + np.std(data_arr, axis=0)
             axs[ax_counter].fill_between(x_range[0], std_low, std_high, color='gray', alpha=0.5, zorder=0)
@@ -594,6 +605,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
                 ax.set_xticks(x_ticks)
                 ax.set_xticklabels(new_ticks_labels)
 
+
     # set x_lim if requested
     if 'xlim' in kwargs:
         if num_axes == 1 or twin_x or ('same_x' in kwargs and kwargs['same_x']):
@@ -605,6 +617,7 @@ def make_general_plot(data_arr, x_range=None, twin_x: bool = False, plot_avg: bo
             xlim_high = kwargs['xlim'][1] * ratio
             for ax in axs:
                 ax.set_xlim(xlim_low, xlim_high)
+
 
     return None
 

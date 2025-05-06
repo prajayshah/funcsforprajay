@@ -1,5 +1,3 @@
-# library of convenience plotting funcs that are used for making various plots for all optical photostimulation/imaging experiments
-
 # imports
 import os
 from typing import Union
@@ -71,7 +69,7 @@ def plotting_decorator(figsize=(3, 3), nrows=1, ncols=1, apply_image_frame_optio
             # create or retrieve the fig, ax objects --> end up in kwargs to use into the plotting func call below
             if 'fig' in [*kwargs] and 'ax' in [*kwargs]:
                 if kwargs['fig'] is None or kwargs['ax'] is None:
-                    # print('\-creating fig, ax [1]')
+                    # print('..creating fig, ax [1]')
                     kwargs['fig'], kwargs['axs'] = plt.subplots(nrows=nrows_, ncols=ncols_, figsize=figsize_)
                 else: pass
             elif ncols_ > 1 or nrows_ > 1:
@@ -80,7 +78,7 @@ def plotting_decorator(figsize=(3, 3), nrows=1, ncols=1, apply_image_frame_optio
                 kwargs['fig'], kwargs['ax'] = plt.subplots(figsize=figsize_)
 
 
-            print(f'\- executing plotting_func')
+            print(f'.. executing plotting_func')
             res = plotting_func(**kwargs)  # these kwargs are the original kwargs defined at the respective plotting_func call + any additional kwargs defined in inner()
 
             kwargs['ax'].set_title(kwargs['title'], wrap=True) if 'title' in [*kwargs] else None
